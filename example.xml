@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<bookstore>
+  <book category="fiction">
+    <title>Empire Burlesque</title>
+    <author pepa="pigg">Ola Nordmann</author>
+    <year>eeeeehghghg</year>
+    <year>2018</year>
+    <price>10.90</price>
+  </book>
+  <book category="non-fiction">
+    <title>Hide your heart</title>
+    <author>Ola Nordmann</author>
+    <year>2018</year>
+    <price>9.90</price>
+  </book>
+</bookstore>
