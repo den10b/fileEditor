@@ -1,18 +1,40 @@
 # utils.py
-def get_expanded_nodes(tree):
-    expanded = []
+
+def get_expanded_paths(tree):
+    expanded_paths = []
     for node in tree.get_children():
-        expanded.extend(_get_expanded_recursively(tree, node))
-    return expanded
+        get_expanded_paths_recursively(tree, node, [], expanded_paths)
+    return expanded_paths
 
 
-def _get_expanded_recursively(tree, node):
-    nodes = [node] if tree.item(node, "open") else []
-    for child in tree.get_children(node):
-        nodes.extend(_get_expanded_recursively(tree, child))
-    return nodes
+def get_expanded_paths_recursively(tree, node, current_path, expanded_paths):
+    node_text = tree.item(node, "text")
+    new_path = current_path + [node_text]
+
+    if tree.item(node, "open"):
+        expanded_paths.append(new_path)
+        for child in tree.get_children(node):
+            get_expanded_paths_recursively(tree, child, new_path, expanded_paths)
 
 
-def set_expanded_nodes(tree, expanded_nodes):
-    for node in expanded_nodes:
-        tree.item(node, open=True)
+def set_expanded_paths(tree, expanded_paths):
+    for path in expanded_paths:
+        node = find_node_by_path(tree, path)
+        if node:
+            tree.item(node, open=True)
+
+
+def find_node_by_path(tree, path):
+    parent = ''
+    node = None
+    for part in path:
+        found = False
+        for child in tree.get_children(parent):
+            if tree.item(child, "text") == part:
+                node = child
+                parent = child
+                found = True
+                break
+        if not found:
+            return None
+    return node

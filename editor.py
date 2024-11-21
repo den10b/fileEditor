@@ -26,14 +26,28 @@ class BaseEditor(ABC):
 
 
 class XMLEditor(BaseEditor):
+    def __init__(self):
+        super().__init__()
+        self.declaration = None  #
+
     def load(self, filepath):
+        with open(filepath, "rb") as f:
+            first_line = f.readline().strip()
+            if first_line.startswith(b"<?xml"):
+                self.declaration = first_line.decode("utf-8")
+            else:
+                self.declaration = '<?xml version="1.0" encoding="UTF-8"?>'
+
         parser = etree.XMLParser(remove_blank_text=True)
         tree = etree.parse(filepath, parser)
         self.data = tree.getroot()
 
     def save(self, filepath):
-        tree = etree.ElementTree(self.data)
-        tree.write(filepath, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        with open(filepath, "wb") as f:
+            if self.declaration:
+                f.write(self.declaration.encode("utf-8") + b"\n")
+            tree = etree.ElementTree(self.data)
+            tree.write(f, pretty_print=True, xml_declaration=False, encoding="UTF-8")
 
     def add_node(self, parent, node_name, text=None):
         new_element = etree.SubElement(parent, node_name)

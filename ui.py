@@ -5,6 +5,8 @@ from editor import BaseEditor  # Импорт базового класса дл
 import json
 from lxml import etree
 
+from utils import get_expanded_paths, set_expanded_paths
+
 
 class EditorUI:
     def __init__(self, root):
@@ -29,6 +31,7 @@ class EditorUI:
         self.tree.column("#0", anchor="w", width=200, stretch=True)
         self.tree.column("Value", anchor="w", width=300, stretch=True)
         self.tree.pack(fill="both", expand=True)
+        self.tree.bind("<ButtonPress-3>",self.on_rmb)
         self.tree.bind("<Double-1>", self.on_double_click)
         self.tree.bind("<<TreeviewOpen>>", self.on_tree_open)
         self.tree.bind("<<TreeviewClose>>", self.on_tree_close)
@@ -143,13 +146,13 @@ class EditorUI:
         self.refresh_ui()
 
     def refresh_ui(self):
-        tree_state = self.save_tree_state()
+        expanded_paths = get_expanded_paths(self.tree)
         self.tree.delete(*self.tree.get_children())
         if self.file_handler.file_type == "XML":
             self.display_xml(self.file_handler.editor.data)
         elif self.file_handler.file_type == "JSON":
             self.display_json(self.file_handler.editor.data)
-        self.restore_tree_state(tree_state)
+        set_expanded_paths(self.tree, expanded_paths)
 
     def display_xml(self, element, parent=""):
         node_id = self.tree.insert(parent, "end", text=element.tag, values=(""))
@@ -261,3 +264,5 @@ class EditorUI:
 
     def on_double_click(self, event):
         self.edit_node()
+    def on_rmb(self, event):
+        print(event)
