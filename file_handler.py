@@ -1,11 +1,12 @@
 # file_handler.py
 from tkinter import filedialog
-from editor import Editor
+from editor import XMLEditor, JSONEditor
 
 
 class FileHandler:
-    def __init__(self, editor: Editor):
-        self.editor = editor
+    def __init__(self):
+        self.editor = None
+        self.file_type = None
 
     def open_file(self):
         filepath = filedialog.askopenfilename(
@@ -14,23 +15,31 @@ class FileHandler:
         )
         if not filepath:
             return None
+
+        if filepath.endswith(".xml"):
+            self.editor = XMLEditor()
+            self.file_type = "XML"
+        elif filepath.endswith(".json"):
+            self.editor = JSONEditor()
+            self.file_type = "JSON"
+        else:
+            # Можно добавить обработку других типов или показать ошибку
+            return None
+
         try:
-            if filepath.endswith(".xml"):
-                self.editor.load_xml(filepath)
-            elif filepath.endswith(".json"):
-                self.editor.load_json(filepath)
+            self.editor.load(filepath)
             return filepath
         except Exception as e:
-            from tkinter import messagebox
-            messagebox.showerror("Ошибка", f"Не удалось открыть файл:\n{e}")
+            # Логирование ошибки или показ пользователю
+            print(f"Ошибка при загрузке файла: {e}")
             return None
 
     def save_file(self, filepath):
+        if not self.editor:
+            return
+
         try:
-            if self.editor.file_type == "XML":
-                self.editor.save_xml(filepath)
-            elif self.editor.file_type == "JSON":
-                self.editor.save_json(filepath)
+            self.editor.save(filepath)
         except Exception as e:
-            from tkinter import messagebox
-            messagebox.showerror("Ошибка", f"Не удалось сохранить файл:\n{e}")
+            # Логирование ошибки или показ пользователю
+            print(f"Ошибка при сохранении файла: {e}")

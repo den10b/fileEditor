@@ -1,19 +1,18 @@
 # ui.py
 from tkinter import Frame, Menu, PanedWindow, messagebox, simpledialog, ttk, filedialog
 from file_handler import FileHandler
-from editor import Editor
-from utils import get_expanded_nodes, set_expanded_nodes
-import xml.etree.ElementTree as ET
+from editor import BaseEditor  # Импорт базового класса для типизации (если необходимо)
 import json
+from lxml import etree
+
 
 class EditorUI:
     def __init__(self, root):
         self.root = root
         self.root.title("XML/JSON Editor")
 
-        # Инициализация редактора данных и обработчика файлов
-        self.editor = Editor()
-        self.file_handler = FileHandler(self.editor)
+        # Инициализация обработчика файлов
+        self.file_handler = FileHandler()
 
         # Панель инструментов
         self.create_toolbar(root)
@@ -53,12 +52,8 @@ class EditorUI:
 
     def create_menu(self, root):
         menubar = Menu(root)
-        file_menu = Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Открыть", command=self.open_file)
-        file_menu.add_command(label="Сохранить", command=self.save_file)
-        file_menu.add_separator()
-        file_menu.add_command(label="Выход", command=root.quit)
-        menubar.add_cascade(label="Файл", menu=file_menu)
+        menubar.add_command(label="Открыть", command=self.open_file)
+        menubar.add_command(label="Сохранить", command=self.save_file)
         root.config(menu=menubar)
 
     def open_file(self):
@@ -71,8 +66,7 @@ class EditorUI:
     def save_file(self):
         filepath = filedialog.asksaveasfilename(
             title="Сохранить файл",
-            defaultextension="",
-            filetypes=[("XML/JSON файлы", "*.xml *.json"), ("Все файлы", "*.*")]
+            filetypes=[("XML/JSON файлы", "*.xml *.json")]
         )
         if filepath:
             self.file_handler.save_file(filepath)
@@ -90,14 +84,8 @@ class EditorUI:
         parent_path = self.get_tree_path(selected_item)
         parent_data = self.get_data_from_path(parent_path)
 
-        if self.editor.file_type == "JSON":
-            if isinstance(parent_data, dict):
-                parent_data[new_node_name] = None
-            elif isinstance(parent_data, list):
-                parent_data.append({new_node_name: None})
-        elif self.editor.file_type == "XML":
-            parent_element = parent_data
-            self.editor.add_node(parent_element, new_node_name)
+        # Используем методы редактора без проверки типа
+        self.file_handler.editor.add_node(parent_data, new_node_name)
 
         self.refresh_ui()
 
@@ -112,21 +100,9 @@ class EditorUI:
         parent_data = self.get_data_from_path(parent_path)
 
         current_node = self.tree.item(selected_item, "text")
+        child_data = self.get_data_from_path(self.get_tree_path(selected_item))
 
-        if self.editor.file_type == "JSON":
-            if isinstance(parent_data, dict):
-                parent_data.pop(current_node, None)
-            elif isinstance(parent_data, list):
-                try:
-                    index = int(current_node.strip("[]"))
-                    parent_data.pop(index)
-                except (ValueError, IndexError):
-                    messagebox.showerror("Ошибка", "Неверный индекс элемента.")
-                    return
-        elif self.editor.file_type == "XML":
-            child_element = self.get_xml_element_by_path(selected_item)
-            if child_element is not None:
-                self.editor.delete_node(parent_data, child_element)
+        self.file_handler.editor.delete_node(parent_data, child_data)
 
         self.refresh_ui()
 
@@ -145,36 +121,35 @@ class EditorUI:
         if new_value is None:  # Отмена
             return
 
-        if self.editor.file_type == "JSON":
-            current_path = self.get_tree_path(selected_item)
-            parent_path = current_path[:-1]
-            key = current_path[-1]
-            parent_data = self.get_data_from_path(parent_path)
+        self.tree.item(selected_item, values=(new_value,))
 
-            if isinstance(parent_data, dict):
-                parent_data[key] = new_value
-            elif isinstance(parent_data, list):
-                try:
-                    index = int(key.strip("[]"))
-                    parent_data[index] = new_value
-                except (ValueError, IndexError):
-                    messagebox.showerror("Ошибка", "Неверный индекс элемента.")
-                    return
-        elif self.editor.file_type == "XML":
-            element = self.get_xml_element_by_path(selected_item)
-            if element is not None:
-                element.text = new_value
+        current_path = self.get_tree_path(selected_item)
+        current_data = self.get_data_from_path(current_path)
+
+        parent_item = self.tree.parent(selected_item)
+        parent_path = self.get_tree_path(parent_item)
+        parent_data = self.get_data_from_path(parent_path)
+
+        # Обновляем значение в редакторе
+        if isinstance(parent_data, dict):
+            parent_data[current_value] = new_value
+        elif isinstance(parent_data, list):
+            try:
+                index = int(current_value.strip("[]"))
+                parent_data[index] = new_value
+            except ValueError:
+                pass
 
         self.refresh_ui()
 
     def refresh_ui(self):
-        tree_state = get_expanded_nodes(self.tree)
+        tree_state = self.save_tree_state()
         self.tree.delete(*self.tree.get_children())
-        if self.editor.file_type == "XML":
-            self.display_xml(self.editor.data)
-        elif self.editor.file_type == "JSON":
-            self.display_json(self.editor.data)
-        set_expanded_nodes(self.tree, tree_state)
+        if self.file_handler.file_type == "XML":
+            self.display_xml(self.file_handler.editor.data)
+        elif self.file_handler.file_type == "JSON":
+            self.display_json(self.file_handler.editor.data)
+        self.restore_tree_state(tree_state)
 
     def display_xml(self, element, parent=""):
         node_id = self.tree.insert(parent, "end", text=element.tag, values=(""))
@@ -206,8 +181,24 @@ class EditorUI:
             # Если это значение, добавляем его как текст
             self.tree.item(parent, values=(data,))
 
-    def on_double_click(self, event):
-        self.edit_node()
+    def save_tree_state(self):
+        state = {}
+        for item in self.tree.get_children():
+            state[item] = self.tree.item(item, "open")
+            state.update(self._save_subtree_state(item))
+        return state
+
+    def _save_subtree_state(self, item):
+        state = {}
+        for child in self.tree.get_children(item):
+            state[child] = self.tree.item(child, "open")
+            state.update(self._save_subtree_state(child))
+        return state
+
+    def restore_tree_state(self, state):
+        for item, is_open in state.items():
+            if self.tree.exists(item):
+                self.tree.item(item, open=is_open)
 
     def on_tree_open(self, event):
         selected_item = self.tree.focus()
@@ -245,40 +236,28 @@ class EditorUI:
         return path
 
     def get_data_from_path(self, path):
-        data = self.editor.data
+        data = self.file_handler.editor.data
         for key in path:
-            if self.editor.file_type == "JSON":
-                if isinstance(data, dict):
-                    data = data.get(key)
-                elif isinstance(data, list):
-                    try:
-                        index = int(key.strip("[]"))
-                        data = data[index]
-                    except (ValueError, IndexError):
-                        return None
-            elif self.editor.file_type == "XML":
-                if isinstance(data, ET.Element):
-                    if key.startswith("@"):
-                        # Атрибут
-                        attr_name = key[1:]
-                        return data.attrib.get(attr_name)
-                    elif key == "#text":
-                        return data.text
-                    else:
-                        data = next((child for child in data if child.tag == key), None)
-                else:
+            if isinstance(data, dict):
+                data = data.get(key)
+            elif isinstance(data, list):
+                try:
+                    index = int(key.strip("[]"))
+                    data = data[index]
+                except (ValueError, IndexError):
                     return None
+            elif isinstance(data, etree._Element):
+                if key.startswith("@"):
+                    # Атрибут
+                    attr_name = key[1:]
+                    data = data.attrib.get(attr_name)
+                elif key == "#text":
+                    data = data.text
+                else:
+                    data = next((child for child in data if child.tag == key), None)
             if data is None:
                 return None
         return data
 
-    def get_xml_element_by_path(self, item):
-        path = self.get_tree_path(item)
-        data = self.editor.data
-        for key in path:
-            if key.startswith("@") or key == "#text":
-                return None  # Атрибуты и текст не являются элементами
-            data = next((child for child in data if child.tag == key), None)
-            if data is None:
-                break
-        return data
+    def on_double_click(self, event):
+        self.edit_node()
