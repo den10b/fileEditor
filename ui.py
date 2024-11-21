@@ -80,17 +80,28 @@ class EditorUI:
             messagebox.showerror("Ошибка", "Выберите узел для добавления.")
             return
 
+        # Запрос имени нового узла
         new_node_name = simpledialog.askstring("Добавить узел", "Введите имя нового узла:")
-        if new_node_name is None:  # Отмена
+        if not new_node_name:
             return
 
-        parent_path = self.get_tree_path(selected_item)
+        parent_path = self.get_tree_path(selected_item)  # Путь к родительскому узлу
         parent_data = self.get_data_from_path(parent_path)
 
-        # Используем методы редактора без проверки типа
-        self.file_handler.editor.add_node(parent_data, new_node_name)
+        if isinstance(parent_data, etree._Element):  # XML
+            # Добавляем новый элемент в родительские данные
+            new_element = etree.SubElement(parent_data, new_node_name)
+        elif isinstance(parent_data, (dict, list)):  # JSON
+            # Добавляем новый элемент в JSON-структуру
+            self.file_handler.editor.add_node(parent_data, new_node_name)
 
-        self.refresh_ui()
+        # Добавляем новый узел в дерево
+        new_node_id = self.tree.insert(
+            selected_item, "end", text=new_node_name, values=(""), open=False
+        )
+
+        # Обновляем родительский узел (делаем его раскрываемым)
+        self.tree.item(selected_item, open=True)
 
     def delete_node(self):
         selected_item = self.tree.focus()
@@ -105,9 +116,18 @@ class EditorUI:
         current_node = self.tree.item(selected_item, "text")
         child_data = self.get_data_from_path(self.get_tree_path(selected_item))
 
-        self.file_handler.editor.delete_node(parent_data, child_data)
+        # Удаляем узел из данных
+        if isinstance(parent_data, etree._Element):  # XML
+            parent_data.remove(child_data)
+        elif isinstance(parent_data, (dict, list)):  # JSON
+            self.file_handler.editor.delete_node(parent_data, current_node)
 
-        self.refresh_ui()
+        # Удаляем узел из дерева
+        self.tree.delete(selected_item)
+
+        # Если родительский узел остался пустым, помечаем его как лист
+        if not self.tree.get_children(parent_item):
+            self.tree.item(parent_item, open=False)
 
     def edit_node(self):
         selected_item = self.tree.focus()
@@ -145,34 +165,53 @@ class EditorUI:
 
         self.refresh_ui()
 
-    def refresh_ui(self):
-        expanded_paths = get_expanded_paths(self.tree)
-        self.tree.delete(*self.tree.get_children())
-        if self.file_handler.file_type == "XML":
-            self.display_xml(self.file_handler.editor.data)
-        elif self.file_handler.file_type == "JSON":
-            self.display_json(self.file_handler.editor.data)
-        set_expanded_paths(self.tree, expanded_paths)
+    def refresh_ui(self, parent_node=None):
+        if parent_node is None:  # Полное обновление дерева
+            expanded_paths = get_expanded_paths(self.tree)
+            self.tree.delete(*self.tree.get_children())
+            if self.file_handler.file_type == "XML":
+                self.display_xml(self.file_handler.editor.data)
+            elif self.file_handler.file_type == "JSON":
+                self.display_json(self.file_handler.editor.data)
+            set_expanded_paths(self.tree, expanded_paths)
+        else:
+            # Обновляем только конкретный узел
+            parent_path = self.get_tree_path(parent_node)
+            parent_data = self.get_data_from_path(parent_path)
+            self.tree.delete(*self.tree.get_children(parent_node))
+
+            if isinstance(parent_data, etree._Element):
+                self.display_xml(parent_data, parent_node)
+            elif isinstance(parent_data, (dict, list)):
+                self.display_json(parent_data, parent_node)
 
     def display_xml(self, element, parent=""):
         if parent == "":
             declaration = self.file_handler.editor.get_meta()
             if declaration:
-                declaration_node=self.tree.insert("","end",text="xml",values=(declaration,),)
+                self.tree.insert("", "end", text="xml", values=(declaration,))
+
         node_id = self.tree.insert(parent, "end", text=element.tag, values=(""))
-        # Если у узла есть текст, отображаем его в правой колонке
+
+        # Если есть текст внутри элемента
         if element.text and element.text.strip():
-            self.tree.item(node_id, values=(element.text.strip(),))
-            # Добавляем дочерний узел с текстом
             self.tree.insert(node_id, "end", text="#text", values=(element.text.strip(),))
 
-        # Добавляем атрибуты как дочерние узлы
+        # Добавляем атрибуты элемента как дочерние узлы
         for attr_name, attr_value in element.attrib.items():
             self.tree.insert(node_id, "end", text=f"@{attr_name}", values=(attr_value,), tags=("attribute",))
+
+        # Добавляем CDATA
+        if isinstance(element.text, etree.CDATA):
+            self.tree.insert(node_id, "end", text="#cdata-section", values=(element.text.strip(),))
 
         # Рекурсивно добавляем дочерние узлы
         for child in element:
             self.display_xml(child, node_id)
+
+        # Если у узла есть дочерние элементы, делаем его "раскрываемым"
+        if len(element):
+            self.tree.item(node_id, open=False)
 
     def display_json(self, data, parent=""):
         if isinstance(data, dict):
