@@ -24,6 +24,10 @@ class BaseEditor(ABC):
     def delete_node(self, parent, child):
         pass
 
+    @abstractmethod
+    def get_meta(self):
+        pass
+
 
 class XMLEditor(BaseEditor):
     def __init__(self):
@@ -33,10 +37,10 @@ class XMLEditor(BaseEditor):
     def load(self, filepath):
         with open(filepath, "rb") as f:
             first_line = f.readline().strip()
-            if first_line.startswith(b"<?xml"):
+            if b"<?xml" in first_line:
                 self.declaration = first_line.decode("utf-8")
-            else:
-                self.declaration = '<?xml version="1.0" encoding="UTF-8"?>'
+            # else:
+            #     self.declaration = '<?xml version="1.0" encoding="UTF-8"?>'
 
         parser = etree.XMLParser(remove_blank_text=True)
         tree = etree.parse(filepath, parser)
@@ -56,6 +60,9 @@ class XMLEditor(BaseEditor):
 
     def delete_node(self, parent, child):
         parent.remove(child)
+
+    def get_meta(self):
+        return self.declaration
 
 
 class JSONEditor(BaseEditor):

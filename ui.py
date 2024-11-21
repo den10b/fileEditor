@@ -155,8 +155,11 @@ class EditorUI:
         set_expanded_paths(self.tree, expanded_paths)
 
     def display_xml(self, element, parent=""):
+        if parent == "":
+            declaration = self.file_handler.editor.get_meta()
+            if declaration:
+                declaration_node=self.tree.insert("","end",text="xml",values=(declaration,),)
         node_id = self.tree.insert(parent, "end", text=element.tag, values=(""))
-
         # Если у узла есть текст, отображаем его в правой колонке
         if element.text and element.text.strip():
             self.tree.item(node_id, values=(element.text.strip(),))
