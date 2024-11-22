@@ -10,6 +10,7 @@ from utils import get_expanded_paths, set_expanded_paths
 
 class EditorUI:
     def __init__(self, root):
+        self.toolbar = None
         self.root = root
         self.root.title("XML/JSON Editor")
 
@@ -31,8 +32,7 @@ class EditorUI:
         self.tree.column("#0", anchor="w", width=200, stretch=True)
         self.tree.column("Value", anchor="w", width=300, stretch=True)
         self.tree.pack(fill="both", expand=True)
-        self.tree.bind("<ButtonPress-3>",self.on_rmb)
-        self.tree.bind("<Double-1>", self.on_double_click)
+
         self.tree.bind("<<TreeviewOpen>>", self.on_tree_open)
         self.tree.bind("<<TreeviewClose>>", self.on_tree_close)
         self.main_frame.add(self.tree_frame)
@@ -46,12 +46,20 @@ class EditorUI:
         self.create_menu(root)
 
     def create_toolbar(self, root):
-        toolbar = Frame(root, bd=1, relief="raised")
-        ttk.Button(toolbar, text="Добавить узел", command=self.add_node).pack(side="left", padx=2, pady=2)
-        ttk.Button(toolbar, text="Удалить узел", command=self.delete_node).pack(side="left", padx=2, pady=2)
-        ttk.Button(toolbar, text="Редактировать узел", command=self.edit_node).pack(side="left", padx=2, pady=2)
-        ttk.Button(toolbar, text="Сохранить", command=self.save_file).pack(side="left", padx=2, pady=2)
-        toolbar.pack(side="top", fill="x")
+        if self.toolbar:
+            self.toolbar.pack_forget()
+        if self.file_handler.file_type:
+            toolbar = Frame(root, bd=1, relief="raised")
+            ttk.Button(toolbar, text="Добавить узел", command=self.add_node).pack(side="left", padx=2, pady=2)
+            ttk.Button(toolbar, text="Удалить узел", command=self.delete_node).pack(side="left", padx=2, pady=2)
+            ttk.Button(toolbar, text="Редактировать узел", command=self.edit_node).pack(side="left", padx=2, pady=2)
+            ttk.Button(toolbar, text="Сохранить", command=self.save_file).pack(side="left", padx=2, pady=2)
+            if self.file_handler.file_type == "XML":
+                ttk.Button(toolbar, text="Добавить 1").pack(side="left", padx=2, pady=2)
+                ttk.Button(toolbar, text="Добавить 2").pack(side="left", padx=2, pady=2)
+                ttk.Button(toolbar, text="Добавить 3").pack(side="left", padx=2, pady=2)
+            toolbar.pack(side="top", fill="x")
+            self.toolbar = toolbar
 
     def create_menu(self, root):
         menubar = Menu(root)
@@ -61,6 +69,7 @@ class EditorUI:
 
     def open_file(self):
         filepath = self.file_handler.open_file()
+        self.create_toolbar(self.root)
         if filepath:
             self.refresh_ui()
         else:
@@ -306,5 +315,6 @@ class EditorUI:
 
     def on_double_click(self, event):
         self.edit_node()
+
     def on_rmb(self, event):
         print(event)

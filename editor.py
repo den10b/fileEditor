@@ -88,3 +88,6 @@ class JSONEditor(BaseEditor):
                 parent.remove(child)
             except ValueError:
                 pass
+
+    def get_meta(self):
+        return None
