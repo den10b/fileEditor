@@ -10,7 +10,11 @@ from utils import get_expanded_paths, set_expanded_paths
 
 class EditorUI:
     def __init__(self, root):
+
+        self.struct_to_iid = {}
+        self.iid_to_struct = {}
         self.toolbar = None
+
         self.root = root
         self.root.title("XML/JSON Editor")
 
@@ -97,12 +101,7 @@ class EditorUI:
         parent_path = self.get_tree_path(selected_item)  # Путь к родительскому узлу
         parent_data = self.get_data_from_path(parent_path)
 
-        if isinstance(parent_data, etree._Element):  # XML
-            # Добавляем новый элемент в родительские данные
-            new_element = etree.SubElement(parent_data, new_node_name)
-        elif isinstance(parent_data, (dict, list)):  # JSON
-            # Добавляем новый элемент в JSON-структуру
-            self.file_handler.editor.add_node(parent_data, new_node_name)
+        self.file_handler.editor.add_node(parent_data, new_node_name)
 
         # Добавляем новый узел в дерево
         new_node_id = self.tree.insert(
@@ -122,13 +121,12 @@ class EditorUI:
         parent_path = self.get_tree_path(parent_item)
         parent_data = self.get_data_from_path(parent_path)
 
-        current_node = self.tree.item(selected_item, "text")
-        child_data = self.get_data_from_path(self.get_tree_path(selected_item))
-
         # Удаляем узел из данных
         if isinstance(parent_data, etree._Element):  # XML
-            parent_data.remove(child_data)
+            child_data = self.get_data_from_path(self.get_tree_path(selected_item))
+            self.file_handler.editor.delete_node(parent_data, child_data)
         elif isinstance(parent_data, (dict, list)):  # JSON
+            current_node = self.tree.item(selected_item, "text")
             self.file_handler.editor.delete_node(parent_data, current_node)
 
         # Удаляем узел из дерева
@@ -202,6 +200,9 @@ class EditorUI:
 
         node_id = self.tree.insert(parent, "end", text=element.tag, values=(""))
 
+        self.struct_to_iid[element] = node_id
+        self.struct_to_iid[node_id] = element
+
         # Если есть текст внутри элемента
         if element.text and element.text.strip():
             self.tree.insert(node_id, "end", text="#text", values=(element.text.strip(),))
@@ -226,10 +227,14 @@ class EditorUI:
         if isinstance(data, dict):
             for key, value in data.items():
                 node_id = self.tree.insert(parent, "end", text=key, values=("",))
+                self.struct_to_iid[key] = node_id
+                self.struct_to_iid[node_id] = key
                 self.display_json(value, node_id)
         elif isinstance(data, list):
             for index, value in enumerate(data):
                 node_id = self.tree.insert(parent, "end", text=f"[{index}]", values=("",))
+                self.struct_to_iid[index] = node_id
+                self.struct_to_iid[node_id] = index
                 self.display_json(value, node_id)
         else:
             # Если это значение, добавляем его как текст
