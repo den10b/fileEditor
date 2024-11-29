@@ -1,6 +1,7 @@
 from tkinter import Frame, Menu, PanedWindow, messagebox, simpledialog, ttk, filedialog
 from file_handler import FileHandler
 from lxml import etree
+from editor import JSONNode
 
 
 class EditorUI:
@@ -30,6 +31,9 @@ class EditorUI:
         style = ttk.Style()
         style.configure("Treeview.tag.Attribute", foreground="blue")
         self.tree.tag_configure("attribute", foreground="blue")
+        self.tree.tag_configure("comment", foreground="green")
+        self.tree.tag_configure("cdata", foreground="brown")
+        self.tree.tag_configure("processing", foreground="purple")
 
         self.toolbar = None
         # Панель инструментов
@@ -37,6 +41,12 @@ class EditorUI:
 
         # Меню
         self.create_menu(root)
+
+    def create_menu(self, root):
+        menubar = Menu(root)
+        menubar.add_command(label="Открыть", command=self.open_file)
+        menubar.add_command(label="Сохранить", command=self.save_file)
+        root.config(menu=menubar)
 
     def create_toolbar(self, root):
         if self.toolbar:
@@ -50,17 +60,82 @@ class EditorUI:
                                                                                                        padx=2, pady=2)
 
             if self.file_handler.file_type == "XML":
-                ttk.Button(toolbar, text="Добавить 1").pack(side="left", padx=2, pady=2)
-                ttk.Button(toolbar, text="Добавить 2").pack(side="left", padx=2, pady=2)
-                ttk.Button(toolbar, text="Добавить 3").pack(side="left", padx=2, pady=2)
+                ttk.Button(toolbar, text="Добавить Комментарий", command=self.add_comment).pack(side="left", padx=2,
+                                                                                                pady=2)
+                ttk.Button(toolbar, text="Добавить CDATA", command=self.add_cdata).pack(side="left", padx=2, pady=2)
+                ttk.Button(toolbar, text="Добавить Инструкцию", command=self.add_processing_instruction).pack(
+                    side="left", padx=2, pady=2)
+                ttk.Button(toolbar, text="Добавить атрибут", command=self.add_attribute).pack(side="left", padx=2,
+                                                                                              pady=2)
             toolbar.pack(side="top", fill="x")
             self.toolbar = toolbar
 
-    def create_menu(self, root):
-        menubar = Menu(root)
-        menubar.add_command(label="Открыть", command=self.open_file)
-        menubar.add_command(label="Сохранить", command=self.save_file)
-        root.config(menu=menubar)
+    def add_attribute(self):
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showerror("Ошибка", "Выберите родительский узел для добавления атрибута.")
+            return
+
+        attr_key = simpledialog.askstring("Добавить атрибут", "Введите название атрибута:")
+        if not attr_key:
+            return
+        attr_val = simpledialog.askstring("Добавить атрибут", "Введите значение атрибута:")
+        if not attr_val:
+            return
+
+        parent_node = self.get_struct_from_iid(selected_item)
+        if isinstance(parent_node, etree._Element):
+            parent_node.set(attr_key, attr_val)
+            self.refresh_ui()
+
+    def add_comment(self):
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showerror("Ошибка", "Выберите родительский узел для добавления комментария.")
+            return
+
+        comment_text = simpledialog.askstring("Добавить Комментарий", "Введите текст комментария:")
+        if not comment_text:
+            return
+
+        parent_node = self.get_struct_from_iid(selected_item)
+        if isinstance(parent_node, etree._Element):
+            comment = etree.Comment(comment_text)
+            parent_node.append(comment)
+            self.refresh_ui()
+
+    def add_cdata(self):
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showerror("Ошибка", "Выберите родительский узел для добавления CDATA.")
+            return
+
+        cdata_text = simpledialog.askstring("Добавить CDATA", "Введите текст CDATA:")
+        if not cdata_text:
+            return
+
+        parent_node = self.get_struct_from_iid(selected_item)
+        if isinstance(parent_node, etree._Element):
+            cdata = etree.CDATA(cdata_text)
+            parent_node.append(cdata)
+            self.refresh_ui()
+
+    def add_processing_instruction(self):
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showerror("Ошибка", "Выберите родительский узел для добавления инструкции обработки.")
+            return
+
+        target = simpledialog.askstring("Добавить Инструкцию", "Введите target:")
+        content = simpledialog.askstring("Добавить Инструкцию", "Введите содержание инструкции:")
+        if not target or not content:
+            return
+
+        parent_node = self.get_struct_from_iid(selected_item)
+        if isinstance(parent_node, etree._Element):
+            pi = etree.ProcessingInstruction(target, content)
+            parent_node.addprevious(pi)  # Инструкции добавляются перед элементами
+            self.refresh_ui()
 
     def open_file(self):
         filepath = self.file_handler.open_file()
@@ -106,33 +181,62 @@ class EditorUI:
                 self.display_node(self.file_handler.editor.data)
 
     def display_node(self, data, parent=""):
-        if isinstance(data, etree._Element):  # XML
-            self._display_xml_node(data, parent)
-        elif isinstance(data, (dict, list)):  # JSON
-            self._display_json_node(data, parent)
-        else:
-            self.tree.item(parent, values=(data,))
+        print(data)
+        print(parent)
+        print(type(data))
+        match type(data):
+            case etree._Element:
+                self._display_xml_node(data, parent)
+            case dict() | list():
+                self._display_json_node(data, parent)
+            # case JSONNode:
+            #     self._display_json_node(data, parent)
+            case _:
+                if isinstance(data, JSONNode):
+                    self._display_json_node(data, parent)
+                else:
+                    self.tree.item(parent, values=(data,))
 
     def _display_xml_node(self, element, parent):
-
         if parent == "":
             declaration = self.file_handler.editor.get_meta()
             if declaration:
                 self.tree.insert("", "end", text="xml", values=(declaration,))
+        node_id = None
+        print(type(element))
 
-        node_id = self.tree.insert(parent, "end", text=element.tag, values=("",), tags=("node",))
+        match type(element):
+            case etree._Element:
+                node_id = self.tree.insert(parent, "end", text=element.tag, values=("",), tags=("node",))
+            case etree._ProcessingInstruction:
+                print(element)
+                node_id = self.tree.insert(parent, "end", text=element.target, values=(element.text,),
+                                           tags=("processing",))
+            case etree._Comment:
+                print(element)
+                node_id = self.tree.insert(parent, "end", text="#comment", values=(element.text,), tags=("comment",))
+            case etree.CDATA:
+                node_id = self.tree.insert(parent, "end", text="#cdata", values=(element.text,), tags=("cdata",))
+
         self.add_node_to_map(element, node_id)
 
         # Добавление текста, атрибутов и дочерних элементов
-        if element.text and element.text.strip():
-            self.tree.item(node_id, values=(element.text.strip(),))
-            self.tree.insert(node_id, "end", text="#text", values=(element.text.strip(),), tags=("text",))
+        if element.text and element.text.strip() and type(element) is etree._Element:
+            raw_string = etree.tostring(element, encoding="unicode")
+            if "<![CDATA[" in raw_string:
+                self.tree.item(node_id, values=(element.text.strip(),))
+                self.tree.insert(node_id, "end", text="#cdata", values=(element.text.strip(),), tags=("cdata",))
+            else:
+                self.tree.item(node_id, values=(element.text.strip(),))
+                self.tree.insert(node_id, "end", text="#text", values=(element.text.strip(),), tags=("text",))
         for attr_name, attr_value in element.attrib.items():
             self.tree.insert(node_id, "end", text=f"@{attr_name}", values=(attr_value,), tags=("attribute",))
         for child in element:
             self.display_node(child, node_id)
 
     def _display_json_node(self, node, parent):
+        print(node)
+        print(parent)
         node_id = self.tree.insert(
             parent,
             "end",
@@ -250,7 +354,7 @@ class EditorUI:
 
         if values and values[0]:  # Если есть значение в правой колонке
             existing_children = {self.tree.item(child, "text") for child in self.tree.get_children(selected_item)}
-            if "#text" not in existing_children:
+            if ("#text" or "#cdata") not in existing_children:
                 # Добавляем дочерний узел с текстом, если его нет
                 self.tree.insert(selected_item, "end", text="#text", values=(values[0],))
             # Убираем значение из правой колонки родительского узла

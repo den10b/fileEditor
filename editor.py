@@ -146,14 +146,13 @@ class JSONWrapper:
 class JSONEditor(BaseEditor):
     def __init__(self):
         super().__init__()
-        self.wrapper = None
+        self.data = None
 
     def load(self, filepath):
         with open(filepath, "r", encoding="utf-8") as f:
             json_data = json.load(f)
             self.wrapper = JSONWrapper(json_data)
-        print(self.wrapper)
-        print(json_data)
+        self.data = self.wrapper.root
 
     def save(self, filepath):
         with open(filepath, "w", encoding="utf-8") as f:
