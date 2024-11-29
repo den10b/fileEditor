@@ -50,7 +50,7 @@ class XMLEditor(BaseEditor):
             # else:
             #     self.declaration = '<?xml version="1.0" encoding="UTF-8"?>'
 
-        parser = etree.XMLParser(remove_blank_text=True)
+        parser = etree.XMLParser(remove_blank_text=True, strip_cdata=False)
         tree = etree.parse(filepath, parser)
         self.data = tree.getroot()
 
@@ -152,6 +152,8 @@ class JSONEditor(BaseEditor):
         with open(filepath, "r", encoding="utf-8") as f:
             json_data = json.load(f)
             self.wrapper = JSONWrapper(json_data)
+        print(self.wrapper)
+        print(json_data)
 
     def save(self, filepath):
         with open(filepath, "w", encoding="utf-8") as f:
