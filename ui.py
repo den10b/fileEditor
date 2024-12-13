@@ -157,7 +157,10 @@ class EditorUI:
         """Добавление объекта структуры и TreeView в связку"""
         self.node_map[struct_obj] = tree_id
         self.node_map[tree_id] = struct_obj
-
+        print(struct_obj)
+        print(type(struct_obj))
+        print(tree_id)
+        print(type(tree_id))
     def get_struct_from_iid(self, tree_id):
         """Получение объекта структуры по TreeView ID"""
         return self.node_map.get(tree_id)
@@ -237,6 +240,7 @@ class EditorUI:
     def _display_json_node(self, node, parent):
         print(node)
         print(parent)
+        print(type(node.value))
         node_id = self.tree.insert(
             parent,
             "end",

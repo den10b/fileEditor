@@ -1,0 +1,246 @@
+# model.py
+import json
+from jsonschema import validate, ValidationError
+from lxml import etree
+import copy
+import unittest
+
+class DataModel:
+    def __init__(self):
+        self.data = {}
+        self.file_path = None
+        self.data_type = None  # 'json' или 'xml'
+
+    # Загрузка JSON файла
+    def load_json(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            self.data = json.load(file)
+        self.file_path = file_path
+        self.data_type = 'json'
+
+    # Загрузка XML файла
+    def load_xml(self, file_path):
+        tree = etree.parse(file_path)
+        self.data = self._etree_to_dict(tree.getroot())
+        self.file_path = file_path
+        self.data_type = 'xml'
+
+    # Преобразование XML в словарь
+    def _etree_to_dict(self, element):
+        d = {element.tag: {} if element.attrib else None}
+        # Обработка атрибутов
+        if element.attrib:
+            d[element.tag].update({f"@{k}": v for k, v in element.attrib.items()})
+        # Обработка комментариев и инструкций обработки
+        for child in element:
+            if isinstance(child, etree._Comment):
+                if '#comment' not in d[element.tag]:
+                    d[element.tag]['#comment'] = []
+                d[element.tag]['#comment'].append(child.text)
+                continue
+            if isinstance(child, etree._ProcessingInstruction):
+                pi = f"{child.target} {child.text}"
+                if '#processing_instruction' not in d[element.tag]:
+                    d[element.tag]['#processing_instruction'] = []
+                d[element.tag]['#processing_instruction'].append(pi)
+                continue
+            # Рекурсивная обработка дочерних элементов
+            child_dict = self._etree_to_dict(child)
+            for k, v in child_dict.items():
+                if k in d[element.tag]:
+                    if not isinstance(d[element.tag][k], list):
+                        d[element.tag][k] = [d[element.tag][k]]
+                    d[element.tag][k].append(v)
+                else:
+                    d[element.tag][k] = v
+        # Обработка текстового содержимого
+        text = element.text.strip() if element.text else ''
+        if text and (len(element) == 0 and not element.attrib):
+            d[element.tag] = text
+        elif text:
+            d[element.tag]['#text'] = text
+        return d
+
+
+    # Сохранение JSON файла
+    def save_json(self, file_path=None):
+        if file_path:
+            self.file_path = file_path
+        with open(self.file_path, 'w', encoding='utf-8') as file:
+            json.dump(self.data, file, indent=4, ensure_ascii=False)
+
+    # Сохранение XML файла
+    def save_xml(self, file_path=None):
+        if file_path:
+            self.file_path = file_path
+        root = self._dict_to_etree(copy.deepcopy(self.data))
+        tree = etree.ElementTree(root)
+        tree.write(self.file_path, pretty_print=True, xml_declaration=True, encoding='UTF-8')
+
+    # Преобразование словаря в XML
+    def _dict_to_etree(self, d):
+        assert isinstance(d, dict) and len(d) == 1
+        tag, body = next(iter(d.items()))
+        element = etree.Element(tag)
+        self._dict_to_etree_recursive(element, body)
+        return element
+
+    def _dict_to_etree_recursive(self, parent, body):
+        if isinstance(body, dict):
+            for key, value in body.items():
+                if key.startswith('@'):
+                    parent.set(key[1:], value)
+                elif key == '#text':
+                    parent.text = value
+                elif key == '#comment':
+                    for comment in value:
+                        comment_element = etree.Comment(comment)
+                        parent.append(comment_element)
+                elif key == '#processing_instruction':
+                    for pi in value:
+                        target, text = self._parse_processing_instruction(pi)
+                        pi_element = etree.ProcessingInstruction(target, text)
+                        parent.append(pi_element)
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, dict):
+                            child = etree.SubElement(parent, key)
+                            self._dict_to_etree_recursive(child, item)
+                        else:
+                            # Примитивные типы в списках
+                            child = etree.SubElement(parent, key)
+                            child.text = str(item)
+                else:
+                    # Узлы с непосредственным значением
+                    child = etree.SubElement(parent, key)
+                    self._dict_to_etree_recursive(child, value)
+        elif isinstance(body, list):
+            for item in body:
+                child = etree.SubElement(parent, parent.tag)
+                self._dict_to_etree_recursive(child, item)
+        else:
+            # Для JSON типов значений
+            parent.text = str(body)
+
+    def _parse_processing_instruction(self, pi):
+        parts = pi.split(' ', 1)
+        target = parts[0].strip('?')
+        text = parts[1].strip('?') if len(parts) > 1 else ''
+        return target, text
+
+    # Добавление узла
+    def add_node(self, path, key, value, node_type='node'):
+        d = self.data
+        try:
+            for p in path:
+                d = d[p]
+            if node_type == 'attribute':
+                d[key] = value  # Атрибут уже содержит '@'
+            elif node_type == 'comment':
+                if '#comment' not in d:
+                    d['#comment'] = []
+                d['#comment'].append(value)
+            elif node_type == 'processing_instruction':
+                if '#processing_instruction' not in d:
+                    d['#processing_instruction'] = []
+                d['#processing_instruction'].append(value)
+            else:
+                if isinstance(d.get(key, None), list):
+                    # Если ключ уже существует и является списком
+                    d[key].append(value)
+                elif key in d and isinstance(d[key], dict):
+                    # Если ключ существует и является словарём
+                    if isinstance(value, dict):
+                        d[key].update(value)
+                    else:
+                        d[key]['#text'] = value
+                else:
+                    # Создание нового ключа
+                    d[key] = value
+        except KeyError:
+            raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
+
+    # Удаление узла
+    def delete_node(self, path, key, node_type='node'):
+        d = self.data
+        try:
+            for p in path:
+                d = d[p]
+            if node_type == 'attribute':
+                del d[key]
+            elif node_type == 'comment':
+                if '#comment' in d and isinstance(d['#comment'], list) and 0 <= key < len(d['#comment']):
+                    d['#comment'].pop(key)
+                else:
+                    raise KeyError("Комментарий не найден.")
+            elif node_type == 'processing_instruction':
+                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(d['#processing_instruction']):
+                    d['#processing_instruction'].pop(key)
+                else:
+                    raise KeyError("Инструкция обработки не найдена.")
+            elif node_type == 'list':
+                if isinstance(d, list) and 0 <= key < len(d):
+                    d.pop(key)
+                else:
+                    raise KeyError("Элемент списка не найден.")
+            elif node_type == 'value':
+                if key in d:
+                    del d[key]
+                else:
+                    raise KeyError(f"Ключ '{key}' не найден.")
+            else:
+                if key in d:
+                    del d[key]
+                else:
+                    raise KeyError(f"Ключ '{key}' не найден.")
+        except (KeyError, TypeError):
+            raise KeyError(f"Ключ '{key}' не найден по пути {'->'.join(map(str, path))}.")
+
+    # Обновление узла
+    def update_node(self, path, key, value, node_type='node'):
+        d = self.data
+        try:
+            for p in path:
+                d = d[p]
+            if node_type == 'attribute':
+                d[key] = value  # Атрибут уже содержит '@'
+            elif node_type == 'comment':
+                if '#comment' in d and isinstance(d['#comment'], list) and 0 <= key < len(d['#comment']):
+                    d['#comment'][key] = value
+                else:
+                    raise KeyError("Комментарий не найден.")
+            elif node_type == 'processing_instruction':
+                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(d['#processing_instruction']):
+                    d['#processing_instruction'][key] = value
+                else:
+                    raise KeyError("Инструкция обработки не найдена.")
+            elif node_type == 'list':
+                if isinstance(d, list) and 0 <= key < len(d):
+                    d[key] = value
+                else:
+                    raise KeyError("Элемент списка не найден.")
+            elif node_type == 'value':
+                d[key] = value
+            else:
+                d[key] = value
+        except KeyError:
+            raise KeyError(f"Ключ '{key}' не найден по пути {'->'.join(map(str, path))}.")
+
+    # Валидация JSON
+    def validate_json(self, schema):
+        try:
+            validate(instance=self.data, schema=schema)
+            return True, "JSON валиден."
+        except ValidationError as e:
+            return False, f"Ошибка валидации: {e.message}"
+
+    # Валидация XML
+    def validate_xml(self, schema_path):
+        xmlschema_doc = etree.parse(schema_path)
+        xmlschema = etree.XMLSchema(xmlschema_doc)
+        root = self._dict_to_etree(copy.deepcopy(self.data))
+        try:
+            xmlschema.assertValid(root)
+            return True, "XML валиден."
+        except etree.DocumentInvalid as e:
+            return False, f"Ошибка валидации: {e.error_log}"
