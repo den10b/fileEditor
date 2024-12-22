@@ -7,8 +7,6 @@
     <year>2018</year>
     <price>10.90</price>
     <?processing instruction?>
-    <!--comment2-->
-    <?processing2 instruction2?>
     <empty />
   </book>
   <book category="non-fiction">
@@ -18,5 +16,4 @@
     <price>9.90</price>
   </book>
   <!--comment-->
-  <!--comment2-->
 </bookstore>

@@ -5,11 +5,13 @@ from lxml import etree
 import copy
 import unittest
 
+
 class DataModel:
     def __init__(self):
         self.data = {}
         self.file_path = None
         self.data_type = None  # 'json' или 'xml'
+        self.xml_declaration = {"version": "1.0", "encoding": "UTF-8", "standalone": None}
 
     # Загрузка JSON файла
     def load_json(self, file_path):
@@ -18,49 +20,63 @@ class DataModel:
         self.file_path = file_path
         self.data_type = 'json'
 
+    def _get_xml_declaration(self, file_path):
+        # Чтение первой строки файла для декларации
+        with open(file_path, 'r', encoding='utf-8') as file:
+            first_line = file.readline().strip()
+            if first_line.startswith("<?xml"):
+                declaration = {}
+                for attr in first_line[5:-2].split():
+                    key, value = attr.split('=')
+                    declaration[key] = value.strip('"')
+                return declaration
+        return {"version": "1.0", "encoding": "UTF-8", "standalone": None}
+
     # Загрузка XML файла
     def load_xml(self, file_path):
         tree = etree.parse(file_path)
+        declaration = self._get_xml_declaration(file_path)
+        if declaration:
+            self.xml_declaration = declaration
         self.data = self._etree_to_dict(tree.getroot())
         self.file_path = file_path
         self.data_type = 'xml'
 
     # Преобразование XML в словарь
     def _etree_to_dict(self, element):
-        d = {element.tag: {} if element.attrib else None}
+        etree_dict = {element.tag: {} if element.attrib else None}
         # Обработка атрибутов
         if element.attrib:
-            d[element.tag].update({f"@{k}": v for k, v in element.attrib.items()})
+            etree_dict[element.tag].update({f"@{k}": v for k, v in element.attrib.items()})
         # Обработка комментариев и инструкций обработки
         for child in element:
             if isinstance(child, etree._Comment):
-                if '#comment' not in d[element.tag]:
-                    d[element.tag]['#comment'] = []
-                d[element.tag]['#comment'].append(child.text)
+                if '#comment' not in etree_dict[element.tag]:
+                    etree_dict[element.tag]['#comment'] = []
+                etree_dict[element.tag]['#comment'].append(child.text)
                 continue
             if isinstance(child, etree._ProcessingInstruction):
                 pi = f"{child.target} {child.text}"
-                if '#processing_instruction' not in d[element.tag]:
-                    d[element.tag]['#processing_instruction'] = []
-                d[element.tag]['#processing_instruction'].append(pi)
+                if '#processing_instruction' not in etree_dict[element.tag]:
+                    etree_dict[element.tag]['#processing_instruction'] = []
+                etree_dict[element.tag]['#processing_instruction'].append(pi)
                 continue
             # Рекурсивная обработка дочерних элементов
             child_dict = self._etree_to_dict(child)
             for k, v in child_dict.items():
-                if k in d[element.tag]:
-                    if not isinstance(d[element.tag][k], list):
-                        d[element.tag][k] = [d[element.tag][k]]
-                    d[element.tag][k].append(v)
+                if k in etree_dict[element.tag]:
+                    if not isinstance(etree_dict[element.tag][k], list):
+                        etree_dict[element.tag][k] = [etree_dict[element.tag][k]]
+                    etree_dict[element.tag][k].append(v)
                 else:
-                    d[element.tag][k] = v
+                    etree_dict[element.tag][k] = v
         # Обработка текстового содержимого
         text = element.text.strip() if element.text else ''
         if text and (len(element) == 0 and not element.attrib):
-            d[element.tag] = text
+            etree_dict[element.tag] = text
         elif text:
-            d[element.tag]['#text'] = text
-        return d
-
+            etree_dict[element.tag]['#text'] = text
+        return etree_dict
 
     # Сохранение JSON файла
     def save_json(self, file_path=None):
@@ -75,7 +91,9 @@ class DataModel:
             self.file_path = file_path
         root = self._dict_to_etree(copy.deepcopy(self.data))
         tree = etree.ElementTree(root)
-        tree.write(self.file_path, pretty_print=True, xml_declaration=True, encoding='UTF-8')
+        tree.write(self.file_path, pretty_print=True, xml_declaration=True,
+                   encoding=self.xml_declaration.get("encoding", "UTF-8"))
+
 
     # Преобразование словаря в XML
     def _dict_to_etree(self, d):
@@ -174,7 +192,8 @@ class DataModel:
                 else:
                     raise KeyError("Комментарий не найден.")
             elif node_type == 'processing_instruction':
-                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(d['#processing_instruction']):
+                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(
+                        d['#processing_instruction']):
                     d['#processing_instruction'].pop(key)
                 else:
                     raise KeyError("Инструкция обработки не найдена.")
@@ -210,7 +229,8 @@ class DataModel:
                 else:
                     raise KeyError("Комментарий не найден.")
             elif node_type == 'processing_instruction':
-                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(d['#processing_instruction']):
+                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(
+                        d['#processing_instruction']):
                     d['#processing_instruction'][key] = value
                 else:
                     raise KeyError("Инструкция обработки не найдена.")

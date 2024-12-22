@@ -1,0 +1,65 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "menu": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "string": {
+                    "type": "string"
+                },
+                "num": {
+                    "type": "integer"
+                },
+                "bool": {
+                    "type": "boolean"
+                },
+                "null": {
+                    "type": "null"
+                },
+                "popup": {
+                    "type": "object",
+                    "properties": {
+                        "menuitem": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "value": {
+                                        "type": "string"
+                                    },
+                                    "onclick": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "required": [
+                                    "value",
+                                    "onclick"
+                                ]
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "menuitem"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "id",
+                "string",
+                "num",
+                "bool",
+                "popup"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+    ]
+}

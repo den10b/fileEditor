@@ -5,6 +5,7 @@ from model import DataModel
 from view import View
 from lxml import etree
 
+
 class Controller:
     def __init__(self, model, view):
         self.model = model
@@ -13,7 +14,7 @@ class Controller:
 
     # Открытие файла
     def open_file(self, file_type):
-        filetypes=[("All Files", "*.*")]
+        filetypes = [("All Files", "*.*")]
         if file_type == "json":
             filetypes = [("JSON Files", "*.json"), ("All Files", "*.*")]
         elif file_type == "xml":
@@ -30,9 +31,83 @@ class Controller:
                     self.model.load_xml(file_path)
                     self.view.current_file_type = 'xml'
                 self.view.populate_tree(self.model.data)
-                self.view.show_message("Успех", f"Файл '{file_path}' успешно открыт.")
+                # self.view.show_message("Успех", f"Файл '{file_path}' успешно открыт.")
             except Exception as e:
                 self.view.show_error("Ошибка", f"Не удалось открыть файл: {e}")
+
+    def get_available_types(self):
+        if self.model.data_type == "json":
+            return ["String", "Number", "Boolean", "Null", "Object", "Array"]
+        elif self.model.data_type == "xml":
+            return ["Attribute",
+                    "Comment",
+                    "Processing Instruction",
+                    # "Text",
+                    "Node"]
+        return []
+
+    def format_value(self, value):
+        if self.model.data_type == 'json':
+            if isinstance(value, str):
+                # return f"\"{value}\""
+                return f"{value}"
+            elif isinstance(value, bool):
+                return str(value).lower()
+            elif value is None:
+                return "null"
+            else:
+                return str(value)
+        elif self.model.data_type == 'xml':
+            return str(value)
+
+    def get_tag(self, value):
+        if self.model.data_type == 'json':
+            if isinstance(value, str):
+                return 'string'
+            elif isinstance(value, bool):
+                return 'boolean'
+            elif value is None:
+                return 'null'
+            elif isinstance(value, (int, float)):
+                return 'number'
+            elif isinstance(value, dict):
+                return 'object'
+            elif isinstance(value, list):
+                return 'array'
+            else:
+                return 'unknown'
+        elif self.model.data_type == 'xml':
+            return 'node'
+
+    def get_node_details(self, item):
+        key = self.view.tree.item(item, 'text')
+        value = self.view.tree.item(item, 'values')[0]
+        tags = self.view.tree.item(item, 'tags')
+
+        if 'attribute' in tags:
+            node_type = "Attribute"
+        elif 'comment' in tags:
+            node_type = "Comment"
+        elif 'processing_instruction' in tags:
+            node_type = "Processing Instruction"
+        elif 'text' in tags:
+            node_type = "Text"
+        elif 'string' in tags:
+            node_type = "String"
+        elif 'number' in tags:
+            node_type = "Number"
+        elif 'boolean' in tags:
+            node_type = "Boolean"
+        elif 'null' in tags:
+            node_type = "Null"
+        elif 'object' in tags:
+            node_type = "Object"
+        elif 'array' in tags:
+            node_type = "Array"
+        else:
+            node_type = "Node"
+
+        return {"key": key, "value": value, "type": node_type}
 
     # Сохранение файла
     def save_file(self, as_new=False):
@@ -397,6 +472,18 @@ class Controller:
                     return
             except Exception as e:
                 self.view.show_error("Валидация", f"Файл не валиден: {e}")
+
+    def edit_xml_declaration(self):
+        version = self.view.prompt_user("Введите версию XML:",
+                                        initialvalue=self.model.xml_declaration.get("version", "1.0"))
+        encoding = self.view.prompt_user("Введите кодировку XML:",
+                                         initialvalue=self.model.xml_declaration.get("encoding", "UTF-8"))
+        standalone = self.view.prompt_user("Введите значение standalone (yes/no, оставьте пустым для None):",
+                                           initialvalue=self.model.xml_declaration.get("standalone", ""))
+        standalone = standalone if standalone in ["yes", "no"] else None
+
+        self.model.xml_declaration = {"version": version, "encoding": encoding, "standalone": standalone}
+        self.view.show_message("Успех", "XML декларация обновлена.")
 
     # Получение пути к выбранному узлу
     def get_path(self, item):

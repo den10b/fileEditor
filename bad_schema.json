@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "menu": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "string": {
+                    "type": "integer"
+                },
+                "num": {
+                    "type": "integer"
+                },
+                "bool": {
+                    "type": "integer"
+                },
+                "null": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "id",
+                "string",
+                "num",
+                "bool",
+                "popup"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "menu"
+    ]
+}
