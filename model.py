@@ -127,11 +127,11 @@ class DataModel:
                     for comment in value:
                         comment_element = etree.Comment(comment)
                         parent.append(comment_element)
-                elif key == '#processing_instruction':
-                    for pi in value:
-                        target, text = self._parse_processing_instruction(pi)
-                        pi_element = etree.ProcessingInstruction(target, text)
-                        parent.append(pi_element)
+                # elif key == '#processing_instruction':
+                #     for pi in value:
+                #         target, text = self._parse_processing_instruction(pi)
+                #         pi_element = etree.ProcessingInstruction(target, text)
+                #         parent.append(pi_element)
                 elif isinstance(value, list):
                     for item in value:
                         if isinstance(item, dict):
