@@ -3,7 +3,6 @@ import json
 from jsonschema import validate, ValidationError
 from lxml import etree
 import copy
-import unittest
 
 
 class DataModel:
@@ -47,35 +46,48 @@ class DataModel:
         etree_dict = {element.tag: {} if element.attrib else None}
         # Обработка атрибутов
         if element.attrib:
-            etree_dict[element.tag].update({f"@{k}": v for k, v in element.attrib.items()})
+            etree_dict[element.tag].update({
+                f"@{k}": v for k, v in element.attrib.items()
+                })
         # Обработка комментариев и инструкций обработки
         for child in element:
             if isinstance(child, etree._Comment):
-                if '#comment' not in etree_dict[element.tag]:
-                    etree_dict[element.tag]['#comment'] = []
-                etree_dict[element.tag]['#comment'].append(child.text)
+                i=0
+                while f'#comment_{i}' in etree_dict[element.tag]:
+                    i+=1
+                etree_dict[element.tag][f'#comment_{i}'] = child.text
+                # if '#comment' not in etree_dict[element.tag]:
+                #     etree_dict[element.tag]['#comment'] = []
+                # etree_dict[element.tag]['#comment'].append(child.text)
                 continue
             if isinstance(child, etree._ProcessingInstruction):
-                pi = f"{child.target} {child.text}"
-                if '#processing_instruction' not in etree_dict[element.tag]:
-                    etree_dict[element.tag]['#processing_instruction'] = []
-                etree_dict[element.tag]['#processing_instruction'].append(pi)
+                # TODO: processing_instruction
+                # pi = f"{child.target} {child.text}"
+                # if '#processing_instruction' not in etree_dict[element.tag]:
+                #     etree_dict[element.tag]['#processing_instruction'] = []
+                # etree_dict[element.tag]['#processing_instruction'].append(pi)
                 continue
             # Рекурсивная обработка дочерних элементов
             child_dict = self._etree_to_dict(child)
             for k, v in child_dict.items():
                 if k in etree_dict[element.tag]:
-                    if not isinstance(etree_dict[element.tag][k], list):
-                        etree_dict[element.tag][k] = [etree_dict[element.tag][k]]
-                    etree_dict[element.tag][k].append(v)
+                    i = 0
+                    while f'{k}_{i}' in etree_dict[element.tag]:
+                        i += 1
+                    etree_dict[element.tag][f'{k}_{i}'] = v
+                    # if not isinstance(etree_dict[element.tag][k], list):
+                    #     etree_dict[element.tag][k] = [etree_dict[element.tag][k]]
+                    # etree_dict[element.tag][k].append(v)
                 else:
                     etree_dict[element.tag][k] = v
         # Обработка текстового содержимого
         text = element.text.strip() if element.text else ''
-        if text and (len(element) == 0 and not element.attrib):
-            etree_dict[element.tag] = text
-        elif text:
-            etree_dict[element.tag]['#text'] = text
+        if text:
+            etree_dict[element.tag] = {'#text': text}
+        # if text and (len(element) == 0 and not element.attrib):
+        #     etree_dict[element.tag] = text
+        # elif text:
+        #     etree_dict[element.tag]['#text'] = text
         return etree_dict
 
     # Сохранение JSON файла
@@ -152,29 +164,26 @@ class DataModel:
         try:
             for p in path:
                 d = d[p]
-            if node_type == 'attribute':
-                d[key] = value  # Атрибут уже содержит '@'
-            elif node_type == 'comment':
-                if '#comment' not in d:
-                    d['#comment'] = []
-                d['#comment'].append(value)
-            elif node_type == 'processing_instruction':
-                if '#processing_instruction' not in d:
-                    d['#processing_instruction'] = []
-                d['#processing_instruction'].append(value)
+            if node_type == "attribute":
+                if not isinstance(d, dict):
+                    raise TypeError("Атрибуты могут быть добавлены только к объектам.")
+                d[f"@{key}"] = value
+            elif node_type == "comment":
+                if "#comment" not in d:
+                    d["#comment"] = []
+                d["#comment"].append(value)
+            elif node_type == "pi":
+                if "#processing_instruction" not in d:
+                    d["#processing_instruction"] = []
+                d["#processing_instruction"].append(value)
+            elif node_type == "list":
+                if key not in d:
+                    d[key] = []
+                elif not isinstance(d[key], list):
+                    raise TypeError("Ключ уже существует и не является списком.")
+                d[key].append(value)
             else:
-                if isinstance(d.get(key, None), list):
-                    # Если ключ уже существует и является списком
-                    d[key].append(value)
-                elif key in d and isinstance(d[key], dict):
-                    # Если ключ существует и является словарём
-                    if isinstance(value, dict):
-                        d[key].update(value)
-                    else:
-                        d[key]['#text'] = value
-                else:
-                    # Создание нового ключа
-                    d[key] = value
+                d[key] = value
         except KeyError:
             raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
 
@@ -219,32 +228,23 @@ class DataModel:
     def update_node(self, path, key, value, node_type='node'):
         d = self.data
         try:
-            for p in path:
+            # Перемещаемся по пути до узла
+            for p in path[:-1]:
                 d = d[p]
-            if node_type == 'attribute':
-                d[key] = value  # Атрибут уже содержит '@'
-            elif node_type == 'comment':
-                if '#comment' in d and isinstance(d['#comment'], list) and 0 <= key < len(d['#comment']):
-                    d['#comment'][key] = value
-                else:
-                    raise KeyError("Комментарий не найден.")
-            elif node_type == 'processing_instruction':
-                if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(
-                        d['#processing_instruction']):
-                    d['#processing_instruction'][key] = value
-                else:
-                    raise KeyError("Инструкция обработки не найдена.")
-            elif node_type == 'list':
-                if isinstance(d, list) and 0 <= key < len(d):
+
+            # Обновляем значение узла
+            if isinstance(d, list):
+                index = path[-1]
+                if not isinstance(index, int) or not (0 <= index < len(d)):
+                    raise KeyError(f"Индекс {index} вне диапазона списка.")
+                d[index] = value
+            else:
+                if key in d:
                     d[key] = value
                 else:
-                    raise KeyError("Элемент списка не найден.")
-            elif node_type == 'value':
-                d[key] = value
-            else:
-                d[key] = value
-        except KeyError:
-            raise KeyError(f"Ключ '{key}' не найден по пути {'->'.join(map(str, path))}.")
+                    raise KeyError(f"Ключ '{key}' не найден.")
+        except (KeyError, IndexError):
+            raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
 
     # Валидация JSON
     def validate_json(self, schema):

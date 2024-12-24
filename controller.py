@@ -280,6 +280,36 @@ class Controller:
             self.view.show_error("Ошибка", f"Не удалось удалить узел: {e}")
         except Exception as e:
             self.view.show_error("Ошибка", f"Не удалось удалить узел: {e}")
+    def update_node(self, path, key, value, node_type='node'):
+        try:
+            self.model.update_node(path, key, value, node_type)
+            self.view.populate_tree(self.model.data)
+            self.view.show_message("Успех", "Узел успешно обновлен.")
+        except KeyError as e:
+            self.view.show_error("Ошибка обновления узла", str(e))
+        except Exception as e:
+            self.view.show_error("Неизвестная ошибка", str(e))
+
+    def add_node_action(self, key, value, node_type):
+        selected_item = self.view.tree.selection()
+        if not selected_item:
+            self.view.show_error("Ошибка", "Выберите родительский узел для добавления.")
+            return
+
+        path = self.get_path_from_tree_item(selected_item[0])
+        try:
+            if node_type == "number":
+                value = int(value)
+            elif node_type == "boolean":
+                value = value.lower() == "true"
+            elif node_type == "null":
+                value = None
+
+            self.model.add_node(path, key, value, node_type)
+            self.view.populate_tree(self.model.data)
+            self.view.show_message("Успех", "Узел успешно добавлен.")
+        except Exception as e:
+            self.view.show_error("Ошибка добавления узла", str(e))
 
     # Изменение узла
     def edit_node(self):
@@ -563,3 +593,20 @@ class Controller:
             self.view.show_error("Ошибка", f"Не удалось сохранить изменения: {e}")
         except Exception as e:
             self.view.show_error("Ошибка", f"Не удалось сохранить изменения: {e}")
+
+    def get_path_from_tree_item(self, item):
+        path = []
+        while item:
+            parent = self.view.tree.parent(item)
+            text = self.view.tree.item(item, "text")
+
+            # Если текст узла - индекс списка ([0], [1], ...), преобразуем в число
+            if text.startswith("[") and text.endswith("]"):
+                path.insert(0, int(text[1:-1]))
+            else:
+                path.insert(0, text)
+
+            item = parent
+        return path
+
+
