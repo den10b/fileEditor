@@ -109,6 +109,7 @@ class DataModel:
 
     # Преобразование словаря в XML
     def _dict_to_etree(self, d):
+        # TODO: вот тут конечно недоделал (((
         assert isinstance(d, dict) and len(d) == 1
         tag, body = next(iter(d.items()))
         element = etree.Element(tag)
