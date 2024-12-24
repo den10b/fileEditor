@@ -293,48 +293,58 @@ class View(tk.Tk):
             case "xml":
                 if isinstance(data, dict):
                     for key, value in data.items():
+                        key_without_num=''
+
+                        key_split=key.split("_")
+                        if len(key_split)>1:
+                            if key_split[-1].isdigit():
+                                key_without_num = "_".join(key_split[:-1])
+
+
                         if key.startswith('@'):
                             # Атрибуты
                             display_key = key
                             display_value = value
                             self.tree.insert(parent, 'end', text=display_key, values=(display_value,), tags=('attribute', key))
-                        elif key == '#comment':
-                            for comment in value:
-                                self.tree.insert(parent, 'end', text="#comment", values=(comment,), tags=('comment',))
+                        elif '#comment' in key:
+                            display_value = value
+                            self.tree.insert(parent, 'end', text="#comment", values=(display_value,), tags=('comment',key))
                         # elif key == '#processing_instruction':
                         #     for pi in value:
                         #         self.tree.insert(parent, 'end', text="#processing_instruction", values=(pi,),
                         #                          tags=('processing_instruction',))
                         elif key == '#text':
                             # TODO: тут можно родителю текст давать
-                            self.tree.insert(parent, 'end', text="#text", values=(value,), tags=('text',))
+                            self.tree.item(parent, values=(value,))
+                            self.tree.insert(parent, 'end', text="#text", values=(value,), tags=('text',key))
                         elif isinstance(value, dict):
-                            node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',))
-                            self._populate_tree_recursive(node, value)
+                            if key_without_num in data:
+                                node = self.tree.insert(parent, 'end', text=key_without_num, values=("",), tags=('node',key))
+                                self._populate_tree_recursive(node, value)
+                            else:
+                                node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',key))
+                                self._populate_tree_recursive(node, value)
                         else:
-                            self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node',))
+                            if key_without_num in data:
+                                self.tree.insert(parent, 'end', text=key_without_num, values=(value,), tags=('node', key))
+                            else:
+                                self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node',key))
                 else:
                     self.tree.insert(parent, 'end', text="Value", values=(data,), tags=('value',))
             case "json":
                 if isinstance(data, dict):
                     for key, value in data.items():
-                        if isinstance(value, list):
-                            node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',))
-                            for index, item in enumerate(value):
-                                child = self.tree.insert(node, 'end', text=f"[{index}]", values=("",), tags=('list',))
-                                self._populate_tree_recursive(child, item)
-                        elif isinstance(value, dict):
-                            node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',))
+                        tag = self.get_json_type_tag(value)
+                        node = self.tree.insert(parent, 'end', text=key, values=(value,), tags=(tag,))
+                        if isinstance(value, list) or isinstance(value, dict):
                             self._populate_tree_recursive(node, value)
-                        else:
-                            tag = self.get_json_type_tag(value)
-                            self.tree.insert(parent, 'end', text=key, values=(value,), tags=(tag,))
                 elif isinstance(data, list):
-                    # JSON массив на верхнем уровне
                     for index, item in enumerate(data):
-                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(""), tags=('list',))
-                        self._populate_tree_recursive(node, item)
+                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,), tags=('list',))
+                        if isinstance(item, list) or isinstance(item, dict):
+                            self._populate_tree_recursive(node, item)
                 else:
+                    self.get_json_type_tag(data)
                     self.tree.insert(parent, 'end', text="Value", values=(data,), tags=('value',))
         self.apply_tags_colors()
 
