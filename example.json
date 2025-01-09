@@ -5,7 +5,13 @@
         "num": 123,
         "bool": true,
         "null": null,
-        "list": [1,2,3,4,5],
+        "list": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
         "popup": {
             "menuitem": [
                 {

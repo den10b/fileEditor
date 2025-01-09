@@ -105,8 +105,8 @@ class View(tk.Tk):
                     entry.grid(row=idx, column=1, sticky=tk.W, padx=5, pady=5)
                     self.details_entries[field] = entry
 
-        save_btn = ttk.Button(details_frame, text="Сохранить изменения", command=self.on_save_details)
-        save_btn.grid(row=len(fields), column=1, sticky=tk.E, padx=5, pady=10)
+        # save_btn = ttk.Button(details_frame, text="Сохранить изменения", command=self.on_save_details)
+        # save_btn.grid(row=len(fields), column=1, sticky=tk.E, padx=5, pady=10)
 
     # def create_context_menu(self):
     #     self.context_menu = tk.Menu(self, tearoff=0)
@@ -384,13 +384,13 @@ class View(tk.Tk):
                 if isinstance(data, dict):
                     for key, value in data.items():
                         tag = self.get_json_type_tag(value)
-                        node = self.tree.insert(parent, 'end', text=key, values=(value,), tags=(tag,))
+                        node = self.tree.insert(parent, 'end', text=key, values=(value,), tags=(tag,key,))
                         if isinstance(value, list) or isinstance(value, dict):
                             self._populate_tree_recursive(node, value)
                 elif isinstance(data, list):
                     for index, item in enumerate(data):
                         tag = self.get_json_type_tag(item)
-                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,),
+                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,index,),
                                                 tags=(tag, 'list_el',))
                         if isinstance(item, list) or isinstance(item, dict):
                             self._populate_tree_recursive(node, item)

@@ -417,6 +417,7 @@ class Controller:
         key = self.view.tree.item(item, 'text')
         old_val = self.view.tree.item(item, 'values')[0]
         tags = self.view.tree.item(item, 'tags')
+        true_key = tags[1]
         # Определение типа узла по тегам
         if 'list' in tags:
             self.view.show_error("Ошибка", "Значение этого узла нельзя изменить.")
@@ -591,20 +592,8 @@ class Controller:
             parent = self.view.tree.parent(item)
             text = self.view.tree.item(item, 'text')
             tags = self.view.tree.item(item, 'tags')
-            # Обработка специальных узлов
-            if text.startswith('@'):
-                key = text
-                path.insert(0, key)
-            elif text == "#comment":
-                key = '#comment'
-                path.insert(0, key)
-            elif text == "#processing_instruction":
-                key = '#processing_instruction'
-                path.insert(0, key)
-            elif text == "#text":
-                key = '#text'
-                path.insert(0, key)
-            elif text.startswith('[') and text.endswith(']'):
+
+            if text.startswith('[') and text.endswith(']'):
                 # Список
                 try:
                     index = int(text.strip('[]'))
@@ -613,8 +602,33 @@ class Controller:
                     # Некорректный индекс
                     path.insert(0, text)
             else:
-                key = text
-                path.insert(0, key)
+                true_key = tags[1]
+                path.insert(0, true_key)
+
+            # # Обработка специальных узлов
+            # if text.startswith('@'):
+            #     key = text
+            #     path.insert(0, key)
+            # elif text == "#comment":
+            #     key = '#comment'
+            #     path.insert(0, key)
+            # elif text == "#processing_instruction":
+            #     key = '#processing_instruction'
+            #     path.insert(0, key)
+            # elif text == "#text":
+            #     key = '#text'
+            #     path.insert(0, key)
+            # elif text.startswith('[') and text.endswith(']'):
+            #     # Список
+            #     try:
+            #         index = int(text.strip('[]'))
+            #         path.insert(0, index)
+            #     except ValueError:
+            #         # Некорректный индекс
+            #         path.insert(0, text)
+            # else:
+            #     key = text
+            #     path.insert(0, key)
             item = parent
         return path
 
