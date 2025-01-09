@@ -127,7 +127,7 @@ class DataModel:
                     if key_split[-1].isdigit():
                         key_without_num = "_".join(key_split[:-1])
                 else:
-                    key_without_num=key
+                    key_without_num = key
                 if key.startswith('@'):
                     parent.set(key[1:], value)
                 elif key == '#text':
@@ -180,6 +180,11 @@ class DataModel:
                 if isinstance(d, dict):
                     if key in d:
                         raise KeyError(f"Элемент с ключом {key} уже существует.")
+            if self.data_type == "xml":
+                if isinstance(d, dict):
+                    if "#text" in d:
+                        if node_type is not "attribute":
+                            raise TypeError(f"Нельзя добавить узел к элементу, у которого есть текст.")
             match node_type:
                 case "attribute":
                     if not isinstance(d, dict):
@@ -200,12 +205,12 @@ class DataModel:
                 #         d["#processing_instruction"] = []
                 #     d["#processing_instruction"].append(value)
                 case "list":
-                    if isinstance(d,list):
+                    if isinstance(d, list):
                         d.append([])
                     else:
                         d[key] = []
                 case "dict":
-                    if isinstance(d,list):
+                    if isinstance(d, list):
                         d.append({})
                     else:
                         d[key] = {}
@@ -218,7 +223,7 @@ class DataModel:
                 case _:
                     match self.data_type:
                         case "json":
-                            if isinstance(d,list):
+                            if isinstance(d, list):
                                 d.append(value)
                             else:
                                 d[key] = value
@@ -344,6 +349,8 @@ class DataModel:
             if old_key == new_key:
                 print("Узел не меняется.")
                 return
+            if old_key.startswith('@'):
+                new_key = f'@{new_key}'
                 # Обновляем значение узла
             if isinstance(d, list):
                 raise KeyError(f"Индекс в спискe изменить нельзя.")
@@ -384,6 +391,9 @@ class DataModel:
                 return
             if self.data_type == "xml":
                 if isinstance(old_value, dict):
+                    for child_key in old_value.keys():
+                        if not (child_key == "#text" or child_key.startswith("@")):
+                            raise TypeError(f"Нельзя добавлять текст к узлам, внутри которых есть другие узлы.")
                     old_value["#text"] = new_value
                     d[key] = old_value
                     return
@@ -393,6 +403,7 @@ class DataModel:
                 raise KeyError(f"Ключ '{key}' не найден.")
         except (KeyError, IndexError):
             raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
+
 
     # Обновление узла
     def update_node_type(self, path, new_type='node'):

@@ -98,10 +98,10 @@ class View(tk.Tk):
             match field:
                 case "Тип":
                     self.type_var = tk.StringVar()
-                    self.type_dropdown = ttk.Combobox(details_frame, textvariable=self.type_var, state="readonly")
+                    self.type_dropdown = ttk.Combobox(details_frame, textvariable=self.type_var, state="readolnly")
                     self.type_dropdown.grid(row=idx, column=1, sticky=tk.W, padx=5, pady=5)
                 case _:
-                    entry = ttk.Entry(details_frame, width=50)
+                    entry = ttk.Entry(details_frame, width=50,state="readolnly")
                     entry.grid(row=idx, column=1, sticky=tk.W, padx=5, pady=5)
                     self.details_entries[field] = entry
 

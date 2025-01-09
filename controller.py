@@ -36,12 +36,17 @@ class Controller:
 
     def get_available_types(self):
         if self.model.data_type == "json":
-            return ["String", "Number", "Bool", "Null", "Object", "List"]
+            return ["String",
+                    "Number",
+                    "Bool",
+                    "Null",
+                    "Object",
+                    "List"]
         elif self.model.data_type == "xml":
             return ["Attribute",
                     "Commentary",
                     # "Processing Instruction",
-                    "Текст",
+                    "Text",
                     "Node"]
         return []
 
@@ -393,6 +398,8 @@ class Controller:
             return
 
         initial = key
+        if initial.startswith('@'):
+            initial = initial[1:]
         new_key = self.view.prompt_user("Введите новый ключ:", initialvalue=initial)
         if new_key is None:
             return
@@ -417,7 +424,7 @@ class Controller:
         key = self.view.tree.item(item, 'text')
         old_val = self.view.tree.item(item, 'values')[0]
         tags = self.view.tree.item(item, 'tags')
-        true_key = tags[1]
+
         # Определение типа узла по тегам
         if 'list' in tags:
             self.view.show_error("Ошибка", "Значение этого узла нельзя изменить.")
