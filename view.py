@@ -1,6 +1,7 @@
 # view.py
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog
+from tkinter import ttk, messagebox, simpledialog
+
 
 class View(tk.Tk):
     def __init__(self):
@@ -107,15 +108,23 @@ class View(tk.Tk):
         save_btn = ttk.Button(details_frame, text="Сохранить изменения", command=self.on_save_details)
         save_btn.grid(row=len(fields), column=1, sticky=tk.E, padx=5, pady=10)
 
+    # def create_context_menu(self):
+    #     self.context_menu = tk.Menu(self, tearoff=0)
+    #     self.context_menu.add_command(label="Добавить узел", command=self.on_add_node)
+    #     self.context_menu.add_command(label="Добавить атрибут", command=self.on_add_attribute)
+    #     self.context_menu.add_command(label="Добавить комментарий", command=self.on_add_comment)
+    #     self.context_menu.add_command(label="Добавить инструкцию обработки", command=self.on_add_pi)
+    #     self.context_menu.add_separator()
+    #     self.context_menu.add_command(label="Удалить узел", command=self.on_delete_node)
+    #     self.context_menu.add_command(label="Изменить узел", command=self.on_edit_node)
     def create_context_menu(self):
         self.context_menu = tk.Menu(self, tearoff=0)
-        self.context_menu.add_command(label="Добавить узел", command=self.on_add_node)
-        self.context_menu.add_command(label="Добавить атрибут", command=self.on_add_attribute)
-        self.context_menu.add_command(label="Добавить комментарий", command=self.on_add_comment)
-        self.context_menu.add_command(label="Добавить инструкцию обработки", command=self.on_add_pi)
+        self.context_menu.add_command(label="Добавить ...", command=self.on_add_node)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Изменить ключ", command=self.on_edit_node_key)
+        self.context_menu.add_command(label="Изменить значение", command=self.on_edit_node_value)
         self.context_menu.add_separator()
         self.context_menu.add_command(label="Удалить узел", command=self.on_delete_node)
-        self.context_menu.add_command(label="Изменить узел", command=self.on_edit_node)
 
     def bind_shortcuts(self):
         self.bind_all("<Control-o>", lambda event: self.on_open("json"))
@@ -130,23 +139,23 @@ class View(tk.Tk):
     def set_controller(self, controller):
         self.controller = controller
 
-    def show_xml_controls(self):
-        # Показать кнопки, специфичные для XML
-        self.add_comment_btn.pack(side=tk.LEFT, padx=2, pady=2)
-        self.add_pi_btn.pack(side=tk.LEFT, padx=2, pady=2)
-
-    def hide_xml_controls(self):
-        # Скрыть кнопки, специфичные для XML
-        self.add_comment_btn.pack_forget()
-        self.add_pi_btn.pack_forget()
-
-    def show_json_controls(self):
-        # Показать кнопки, специфичные для JSON
-        pass  # Если есть специфичные кнопки для JSON, добавьте их
-
-    def hide_json_controls(self):
-        # Скрыть кнопки, специфичные для JSON
-        pass
+    # def show_xml_controls(self):
+    #     # Показать кнопки, специфичные для XML
+    #     self.add_comment_btn.pack(side=tk.LEFT, padx=2, pady=2)
+    #     self.add_pi_btn.pack(side=tk.LEFT, padx=2, pady=2)
+    #
+    # def hide_xml_controls(self):
+    #     # Скрыть кнопки, специфичные для XML
+    #     self.add_comment_btn.pack_forget()
+    #     self.add_pi_btn.pack_forget()
+    #
+    # def show_json_controls(self):
+    #     # Показать кнопки, специфичные для JSON
+    #     pass  # Если есть специфичные кнопки для JSON, добавьте их
+    #
+    # def hide_json_controls(self):
+    #     # Скрыть кнопки, специфичные для JSON
+    #     pass
 
     def on_open(self, file_type):
         self.controller.open_file(file_type)
@@ -172,11 +181,17 @@ class View(tk.Tk):
     def on_edit_node(self):
         self.controller.edit_node()
 
+    def on_edit_node_key(self):
+        self.controller.edit_node_key()
+
+    def on_edit_node_value(self):
+        self.controller.edit_node_value()
+
     def on_validate(self, target):
         self.controller.validate(target)
 
     def on_double_click(self, event):
-        self.controller.edit_node()
+        self.controller.edit_node_value()
 
     def on_edit_xml_declaration(self):
         self.controller.edit_xml_declaration()
@@ -205,11 +220,21 @@ class View(tk.Tk):
 
         # Доступные типы для JSON и XML
         if self.current_file_type == "json":
-            types = [("Узел", "node"), ("Список", "list"), ("Число", "number"), ("Строка", "string"),
-                     ("Булево", "boolean"), ("Null", "null")]
+            types = [
+                ("Object", "dict"),
+                ("List", "list"),
+                ("Number", "number"),
+                ("String", "string"),
+                ("Bool", "boolean"),
+                ("Null", "null")
+            ]
         elif self.current_file_type == "xml":
-            types = [("Узел", "node"), ("Атрибут", "attribute"), ("Комментарий", "comment"),
-                     ("Инструкция обработки", "pi")]
+            types = [
+                ("Node", "node"),
+                ("Attribute", "attribute"),
+                ("Commentary", "comment"),
+                # ("Инструкция обработки", "pi"),
+            ]
 
         # Добавляем кнопки для каждого типа
         for text, type_ in types:
@@ -241,8 +266,15 @@ class View(tk.Tk):
         value_entry = ttk.Entry(dialog, width=40)
         value_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        # Для XML: скрываем поле значения для атрибута, комментария или инструкции обработки
-        if self.current_file_type == "xml" and node_type in ["attribute", "comment", "pi"]:
+        # Для XML: скрываем поле значения для узла или инструкции обработки
+        if self.current_file_type == "xml" and node_type in ["node", "pi"]:
+            value_entry.grid_remove()
+        # Для XML: скрываем поле значения для узла или инструкции обработки
+        if self.current_file_type == "xml" and node_type in ["text", "comment"]:
+            key_entry.grid_remove()
+
+        # Для JSON: скрываем поле значения для списка, словаря и null
+        if self.current_file_type == "json" and node_type in ["dict", "list", "null"]:
             value_entry.grid_remove()
 
         # Кнопка подтверждения
@@ -293,22 +325,23 @@ class View(tk.Tk):
             case "xml":
                 if isinstance(data, dict):
                     for key, value in data.items():
-                        key_without_num=''
+                        key_without_num = ''
 
-                        key_split=key.split("_")
-                        if len(key_split)>1:
+                        key_split = key.split("_")
+                        if len(key_split) > 1:
                             if key_split[-1].isdigit():
                                 key_without_num = "_".join(key_split[:-1])
-
 
                         if key.startswith('@'):
                             # Атрибуты
                             display_key = key
                             display_value = value
-                            self.tree.insert(parent, 'end', text=display_key, values=(display_value,), tags=('attribute', key))
+                            self.tree.insert(parent, 'end', text=display_key, values=(display_value,),
+                                             tags=('attribute', key))
                         elif '#comment' in key:
                             display_value = value
-                            self.tree.insert(parent, 'end', text="#comment", values=(display_value,), tags=('comment',key))
+                            self.tree.insert(parent, 'end', text="#comment", values=(display_value,),
+                                             tags=('comment', key))
                         # elif key == '#processing_instruction':
                         #     for pi in value:
                         #         self.tree.insert(parent, 'end', text="#processing_instruction", values=(pi,),
@@ -316,19 +349,35 @@ class View(tk.Tk):
                         elif key == '#text':
                             # TODO: тут можно родителю текст давать
                             self.tree.item(parent, values=(value,))
-                            self.tree.insert(parent, 'end', text="#text", values=(value,), tags=('text',key))
+                            self.tree.insert(parent, 'end', text="#text", values=(value,), tags=('text', key))
                         elif isinstance(value, dict):
-                            if key_without_num in data:
-                                node = self.tree.insert(parent, 'end', text=key_without_num, values=("",), tags=('node',key))
+                            # TODO: кринж если он сделает abcd_1234
+                            if key_without_num != '':
+                                node = self.tree.insert(parent, 'end', text=key_without_num, values=("",),
+                                                        tags=('node', key))
                                 self._populate_tree_recursive(node, value)
                             else:
-                                node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',key))
+                                node = self.tree.insert(parent, 'end', text=key, values=("",),
+                                                        tags=('node', key))
                                 self._populate_tree_recursive(node, value)
+
+                            # if key_without_num in data:
+                            #     node = self.tree.insert(parent, 'end', text=key_without_num, values=("",), tags=('node',key))
+                            #     self._populate_tree_recursive(node, value)
+                            # else:
+                            #     node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',key))
+                            #     self._populate_tree_recursive(node, value)
                         else:
-                            if key_without_num in data:
-                                self.tree.insert(parent, 'end', text=key_without_num, values=(value,), tags=('node', key))
+                            if key_without_num != '':
+                                self.tree.insert(parent, 'end', text=key_without_num, values=(value,),
+                                                 tags=('node', key))
                             else:
-                                self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node',key))
+                                self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node', key))
+
+                            # if key_without_num in data:
+                            #     self.tree.insert(parent, 'end', text=key_without_num, values=(value,), tags=('node', key))
+                            # else:
+                            #     self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node',key))
                 else:
                     self.tree.insert(parent, 'end', text="Value", values=(data,), tags=('value',))
             case "json":
@@ -340,7 +389,9 @@ class View(tk.Tk):
                             self._populate_tree_recursive(node, value)
                 elif isinstance(data, list):
                     for index, item in enumerate(data):
-                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,), tags=('list',))
+                        tag = self.get_json_type_tag(item)
+                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,),
+                                                tags=(tag, 'list_el',))
                         if isinstance(item, list) or isinstance(item, dict):
                             self._populate_tree_recursive(node, item)
                 else:
@@ -369,11 +420,25 @@ class View(tk.Tk):
         elif isinstance(value, (int, float)):
             return 'number'
         elif isinstance(value, dict):
-            return 'object'
+            return 'dict'
         elif isinstance(value, list):
-            return 'array'
+            return 'list'
         else:
             return 'unknown'
+
+    def convert_by_type_tags(self, tags, value):
+        for tag in tags:
+            if tag in ('string', 'boolean', 'null', 'number'):
+                match tag:
+                    case 'string':
+                        return str(value)
+                    case 'boolean':
+                        return bool(value)
+                    case 'null':
+                        return None
+                    case 'number':
+                        return int(value)
+        return value
 
     def apply_tags_colors(self):
         self.tree.tag_configure('node', foreground='black')
@@ -381,13 +446,13 @@ class View(tk.Tk):
         self.tree.tag_configure('comment', foreground='green')
         self.tree.tag_configure('processing_instruction', foreground='purple')
         self.tree.tag_configure('text', foreground='grey')
-        self.tree.tag_configure('list', foreground='orange')
+        self.tree.tag_configure('list', foreground='olive')
         self.tree.tag_configure('string', foreground='blue3')
         self.tree.tag_configure('number', foreground='chartreuse4')
         self.tree.tag_configure('boolean', foreground='dodgerblue3')
         self.tree.tag_configure('null', foreground='darkseagreen4', font=('TkDefaultFont', 10, 'italic'))
-        self.tree.tag_configure('object', foreground='teal')
-        self.tree.tag_configure('array', foreground='olive')
+        self.tree.tag_configure('dict', foreground='teal')
+        self.tree.tag_configure('list_el', foreground='orange')
         self.tree.tag_configure('unknown', foreground='black')
 
     def display_details(self, item):

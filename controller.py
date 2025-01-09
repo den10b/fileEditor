@@ -1,9 +1,8 @@
 # controller.py
-from tkinter import filedialog, messagebox
 import json
+from tkinter import filedialog
+
 from model import DataModel
-from view import View
-from lxml import etree
 
 
 class Controller:
@@ -37,12 +36,12 @@ class Controller:
 
     def get_available_types(self):
         if self.model.data_type == "json":
-            return ["String", "Number", "Boolean", "Null", "Object", "Array"]
+            return ["String", "Number", "Bool", "Null", "Object", "List"]
         elif self.model.data_type == "xml":
             return ["Attribute",
-                    "Comment",
-                    "Processing Instruction",
-                    # "Text",
+                    "Commentary",
+                    # "Processing Instruction",
+                    "Текст",
                     "Node"]
         return []
 
@@ -100,9 +99,9 @@ class Controller:
             node_type = "Boolean"
         elif 'null' in tags:
             node_type = "Null"
-        elif 'object' in tags:
+        elif 'dict' in tags:
             node_type = "Object"
-        elif 'array' in tags:
+        elif 'list' in tags:
             node_type = "Array"
         else:
             node_type = "Node"
@@ -280,6 +279,7 @@ class Controller:
             self.view.show_error("Ошибка", f"Не удалось удалить узел: {e}")
         except Exception as e:
             self.view.show_error("Ошибка", f"Не удалось удалить узел: {e}")
+
     def update_node(self, path, key, value, node_type='node'):
         try:
             self.model.update_node(path, key, value, node_type)
@@ -362,6 +362,75 @@ class Controller:
 
         try:
             self.model.update_node(self.get_path(item), key, new_value, node_type=node_type)
+            self.view.populate_tree(self.model.data)
+            self.view.show_message("Успех", "Узел успешно изменён.")
+        except KeyError as e:
+            self.view.show_error("Ошибка", str(e))
+        except TypeError as e:
+            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
+        except Exception as e:
+            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
+
+    def edit_node_key(self):
+        selected_item = self.view.tree.selection()
+        if not selected_item:
+            self.view.show_error("Ошибка", "Выберите узел для изменения.")
+            return
+        item = selected_item[0]
+        key = self.view.tree.item(item, 'text')
+        # value = self.view.tree.item(item, 'values')[0]
+        tags = self.view.tree.item(item, 'tags')
+
+        # Определение типа узла по тегам
+        if 'list_el' in tags:
+            self.view.show_error("Ошибка", "Индекс нельзя изменить.")
+            return
+        elif 'comment' in tags:
+            self.view.show_error("Ошибка", "Название этого узла нельзя изменить.")
+            return
+        elif 'text' in tags:
+            self.view.show_error("Ошибка", "Название этого узла нельзя изменить.")
+            return
+
+        initial = key
+        new_key = self.view.prompt_user("Введите новый ключ:", initialvalue=initial)
+        if new_key is None:
+            return
+
+        try:
+            self.model.update_node_key(self.get_path(item), new_key)
+            self.view.populate_tree(self.model.data)
+            self.view.show_message("Успех", "Узел успешно изменён.")
+        except KeyError as e:
+            self.view.show_error("Ошибка", str(e))
+        except TypeError as e:
+            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
+        except Exception as e:
+            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
+
+    def edit_node_value(self):
+        selected_item = self.view.tree.selection()
+        if not selected_item:
+            self.view.show_error("Ошибка", "Выберите узел для изменения.")
+            return
+        item = selected_item[0]
+        key = self.view.tree.item(item, 'text')
+        old_val = self.view.tree.item(item, 'values')[0]
+        tags = self.view.tree.item(item, 'tags')
+        # Определение типа узла по тегам
+        if 'list' in tags:
+            self.view.show_error("Ошибка", "Значение этого узла нельзя изменить.")
+            return
+        elif 'dict' in tags:
+            self.view.show_error("Ошибка", "Значение этого узла нельзя изменить.")
+            return
+
+        new_val = self.view.prompt_user("Введите новое значение:", initialvalue=old_val)
+        if new_val is None:
+            return
+        try:
+            converted_new_val = self.view.convert_by_type_tags(tags, new_val)
+            self.model.update_node_value(self.get_path(item), converted_new_val)
             self.view.populate_tree(self.model.data)
             self.view.show_message("Успех", "Узел успешно изменён.")
         except KeyError as e:
@@ -608,5 +677,3 @@ class Controller:
 
             item = parent
         return path
-
-

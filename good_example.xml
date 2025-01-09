@@ -7,8 +7,7 @@
     <year>eeeeehghghg</year>
     <year>2018</year>
     <price>10.90</price>
-    <?processing instruction?>
-    <empty />
+    <empty/>
   </book>
   <version>1</version>
   <!--comm-->
