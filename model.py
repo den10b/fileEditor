@@ -76,9 +76,6 @@ class DataModel:
                     while f'{k}_{i}' in etree_dict[element.tag]:
                         i += 1
                     etree_dict[element.tag][f'{k}_{i}'] = v
-                    # if not isinstance(etree_dict[element.tag][k], list):
-                    #     etree_dict[element.tag][k] = [etree_dict[element.tag][k]]
-                    # etree_dict[element.tag][k].append(v)
                 else:
                     etree_dict[element.tag][k] = v
         # Обработка текстового содержимого
@@ -258,84 +255,8 @@ class DataModel:
             else:
                 raise KeyError(f"Ключ '{key}' ни в словаре, ни в списке.")
 
-            # match node_type:
-            #     case 'attribute':
-            #         del d[key]
-            #     case 'comment':
-            #         del d[key]
-            #     # case 'processing_instruction':
-            #     #     if '#processing_instruction' in d and isinstance(d['#processing_instruction'], list) and 0 <= key < len(
-            #     #             d['#processing_instruction']):
-            #     #         d['#processing_instruction'].pop(key)
-            #     #     else:
-            #     #         raise KeyError("Инструкция обработки не найдена.")
-            #     case 'list':
-            #         if isinstance(d, list) and 0 <= key < len(d):
-            #             d.pop(key)
-            #         else:
-            #             raise KeyError("Элемент списка не найден.")
-            #     case 'value':
-            #         if key in d:
-            #             del d[key]
-            #         else:
-            #             raise KeyError(f"Ключ '{key}' не найден.")
-            #     case _:
-            #         if key in d:
-            #             del d[key]
-            #         else:
-            #             raise KeyError(f"Ключ '{key}' не найден.")
         except (KeyError, TypeError):
             raise KeyError(f"Ключ '{key}' не найден по пути {'->'.join(map(str, path))}.")
-
-    # # Обновление узла
-    # def update_node(self, path, key, value=None, node_type='node'):
-    #     d = self.data
-    #     try:
-    #         # Перемещаемся по пути до узла
-    #         for p in path[-1]:
-    #             d = d[p]
-    #         # d это родитель ( по-идее )
-    #         old_key = path[-1]
-    #         if old_key == key and not value:
-    #             print("Узел не меняется.")
-    #             return
-    #             # Обновляем значение узла
-    #         if isinstance(d, list):
-    #             if old_key != key:
-    #                 raise KeyError(f"Индекс в спискe изменить нельзя.")
-    #
-    #             if not isinstance(old_key, int) or not (0 <= old_key < len(d)):
-    #                 raise KeyError(f"Индекс {old_key} вне диапазона списка.")
-    #             d[old_key] = value
-    #         if isinstance(d, dict):
-    #             if old_key == key:
-    #                 d[key] = value
-    #             else:
-    #                 match self.data_type:
-    #                     case "json":
-    #                         if key in d:
-    #                             raise KeyError(f"Элемент {key} уже существует.")
-    #                         if value:
-    #                             del d[old_key]
-    #                             d[key] = value
-    #                         else:
-    #                             d[key] = d[old_key]
-    #                             del d[old_key]
-    #                     case "xml":
-    #                         if key in d:
-    #                             i = 0
-    #                             while f'{key}_{i}' in d:
-    #                                 i += 1
-    #                             d[f'{key}_{i}'] = value
-    #                         else:
-    #                             d[key] = value
-    #         else:
-    #             if key in d:
-    #                 d[key] = value
-    #             else:
-    #                 raise KeyError(f"Ключ '{key}' не найден.")
-    #     except (KeyError, IndexError):
-    #         raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
 
     # Обновление узла
     def update_node_key(self, path, new_key):
@@ -344,7 +265,7 @@ class DataModel:
             # Перемещаемся по пути до узла
             for p in path[:-1]:
                 d = d[p]
-            # d это родитель ( по-идее )
+            # d это родитель
             old_key = path[-1]
             if old_key == new_key:
                 print("Узел не меняется.")

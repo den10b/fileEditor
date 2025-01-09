@@ -108,15 +108,6 @@ class View(tk.Tk):
         # save_btn = ttk.Button(details_frame, text="Сохранить изменения", command=self.on_save_details)
         # save_btn.grid(row=len(fields), column=1, sticky=tk.E, padx=5, pady=10)
 
-    # def create_context_menu(self):
-    #     self.context_menu = tk.Menu(self, tearoff=0)
-    #     self.context_menu.add_command(label="Добавить узел", command=self.on_add_node)
-    #     self.context_menu.add_command(label="Добавить атрибут", command=self.on_add_attribute)
-    #     self.context_menu.add_command(label="Добавить комментарий", command=self.on_add_comment)
-    #     self.context_menu.add_command(label="Добавить инструкцию обработки", command=self.on_add_pi)
-    #     self.context_menu.add_separator()
-    #     self.context_menu.add_command(label="Удалить узел", command=self.on_delete_node)
-    #     self.context_menu.add_command(label="Изменить узел", command=self.on_edit_node)
     def create_context_menu(self):
         self.context_menu = tk.Menu(self, tearoff=0)
         self.context_menu.add_command(label="Добавить ...", command=self.on_add_node)
@@ -139,24 +130,6 @@ class View(tk.Tk):
     def set_controller(self, controller):
         self.controller = controller
 
-    # def show_xml_controls(self):
-    #     # Показать кнопки, специфичные для XML
-    #     self.add_comment_btn.pack(side=tk.LEFT, padx=2, pady=2)
-    #     self.add_pi_btn.pack(side=tk.LEFT, padx=2, pady=2)
-    #
-    # def hide_xml_controls(self):
-    #     # Скрыть кнопки, специфичные для XML
-    #     self.add_comment_btn.pack_forget()
-    #     self.add_pi_btn.pack_forget()
-    #
-    # def show_json_controls(self):
-    #     # Показать кнопки, специфичные для JSON
-    #     pass  # Если есть специфичные кнопки для JSON, добавьте их
-    #
-    # def hide_json_controls(self):
-    #     # Скрыть кнопки, специфичные для JSON
-    #     pass
-
     def on_open(self, file_type):
         self.controller.open_file(file_type)
 
@@ -166,20 +139,8 @@ class View(tk.Tk):
     def on_add_node(self):
         self.on_add_node_dialog()
 
-    def on_add_attribute(self):
-        self.controller.add_attribute()
-
-    def on_add_comment(self):
-        self.controller.add_comment()
-
-    def on_add_pi(self):
-        self.controller.add_processing_instruction()
-
     def on_delete_node(self):
         self.controller.delete_node()
-
-    def on_edit_node(self):
-        self.controller.edit_node()
 
     def on_edit_node_key(self):
         self.controller.edit_node_key()
@@ -293,6 +254,7 @@ class View(tk.Tk):
         dialog.destroy()
         self.controller.add_node_action(key, value, node_type)
 
+    # Метод для изменения узла
     def on_save_details(self):
         selected_item = self.tree.selection()
         if not selected_item:
@@ -360,37 +322,25 @@ class View(tk.Tk):
                                 node = self.tree.insert(parent, 'end', text=key, values=("",),
                                                         tags=('node', key))
                                 self._populate_tree_recursive(node, value)
-
-                            # if key_without_num in data:
-                            #     node = self.tree.insert(parent, 'end', text=key_without_num, values=("",), tags=('node',key))
-                            #     self._populate_tree_recursive(node, value)
-                            # else:
-                            #     node = self.tree.insert(parent, 'end', text=key, values=("",), tags=('node',key))
-                            #     self._populate_tree_recursive(node, value)
                         else:
                             if key_without_num != '':
                                 self.tree.insert(parent, 'end', text=key_without_num, values=(value,),
                                                  tags=('node', key))
                             else:
                                 self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node', key))
-
-                            # if key_without_num in data:
-                            #     self.tree.insert(parent, 'end', text=key_without_num, values=(value,), tags=('node', key))
-                            # else:
-                            #     self.tree.insert(parent, 'end', text=key, values=(value,), tags=('node',key))
                 else:
                     self.tree.insert(parent, 'end', text="Value", values=(data,), tags=('value',))
             case "json":
                 if isinstance(data, dict):
                     for key, value in data.items():
                         tag = self.get_json_type_tag(value)
-                        node = self.tree.insert(parent, 'end', text=key, values=(value,), tags=(tag,key,))
+                        node = self.tree.insert(parent, 'end', text=key, values=(str(value),), tags=(tag, key,))
                         if isinstance(value, list) or isinstance(value, dict):
                             self._populate_tree_recursive(node, value)
                 elif isinstance(data, list):
                     for index, item in enumerate(data):
                         tag = self.get_json_type_tag(item)
-                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item,index,),
+                        node = self.tree.insert(parent, 'end', text=f"[{index}]", values=(item, index,),
                                                 tags=(tag, 'list_el',))
                         if isinstance(item, list) or isinstance(item, dict):
                             self._populate_tree_recursive(node, item)

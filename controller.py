@@ -64,25 +64,6 @@ class Controller:
         elif self.model.data_type == 'xml':
             return str(value)
 
-    def get_tag(self, value):
-        if self.model.data_type == 'json':
-            if isinstance(value, str):
-                return 'string'
-            elif isinstance(value, bool):
-                return 'boolean'
-            elif value is None:
-                return 'null'
-            elif isinstance(value, (int, float)):
-                return 'number'
-            elif isinstance(value, dict):
-                return 'object'
-            elif isinstance(value, list):
-                return 'array'
-            else:
-                return 'unknown'
-        elif self.model.data_type == 'xml':
-            return 'node'
-
     def get_node_details(self, item):
         key = self.view.tree.item(item, 'text')
         value = self.view.tree.item(item, 'values')[0]
@@ -140,98 +121,6 @@ class Controller:
             self.view.show_message("Успех", f"Файл '{self.model.file_path}' успешно сохранён.")
         except Exception as e:
             self.view.show_error("Ошибка", f"Не удалось сохранить файл: {e}")
-
-    # Добавление узла
-    def add_node(self):
-        selected_item = self.view.tree.selection()
-        if not selected_item:
-            self.view.show_error("Ошибка", "Выберите родительский узел для добавления.")
-            return
-        path = self.get_path(selected_item[0])
-        key = self.view.prompt_user("Введите ключ для нового узла:")
-        if not key:
-            return
-        value = self.view.prompt_user("Введите значение для нового узла:")
-        if value is None:
-            return
-        try:
-            # Определяем тип узла
-            node_type = 'node'
-            if self.model.data_type == 'json':
-                # В JSON узлы могут быть как объектами, так и значениями
-                # Здесь предполагается, что добавляемый узел - объект или значение
-                node_type = 'node'
-            elif self.model.data_type == 'xml':
-                # В XML добавляем как обычный узел
-                node_type = 'node'
-            self.model.add_node(path, key, value, node_type=node_type)
-            self.view.populate_tree(self.model.data)
-            self.view.show_message("Успех", f"Узел '{key}' успешно добавлен.")
-        except KeyError as e:
-            self.view.show_error("Ошибка", str(e))
-        except Exception as e:
-            self.view.show_error("Ошибка", f"Не удалось добавить узел: {e}")
-
-    # Добавление атрибута
-    def add_attribute(self):
-        selected_item = self.view.tree.selection()
-        if not selected_item:
-            self.view.show_error("Ошибка", "Выберите узел для добавления атрибута.")
-            return
-        path = self.get_path(selected_item[0])
-        key = self.view.prompt_user("Введите имя атрибута (без '@'):")
-        if not key:
-            return
-        value = self.view.prompt_user("Введите значение атрибута:")
-        if value is None:
-            return
-        try:
-            full_key = f"@{key}"
-            self.model.add_node(path, full_key, value, node_type='attribute')
-            self.view.populate_tree(self.model.data)
-            self.view.show_message("Успех", f"Атрибут '{full_key}' успешно добавлен.")
-        except KeyError as e:
-            self.view.show_error("Ошибка", str(e))
-        except Exception as e:
-            self.view.show_error("Ошибка", f"Не удалось добавить атрибут: {e}")
-
-    # Добавление комментария
-    def add_comment(self):
-        selected_item = self.view.tree.selection()
-        if not selected_item:
-            self.view.show_error("Ошибка", "Выберите узел для добавления комментария.")
-            return
-        path = self.get_path(selected_item[0])
-        comment = self.view.prompt_user("Введите комментарий:")
-        if not comment:
-            return
-        try:
-            self.model.add_node(path, None, comment, node_type='comment')
-            self.view.populate_tree(self.model.data)
-            self.view.show_message("Успех", "Комментарий успешно добавлен.")
-        except KeyError as e:
-            self.view.show_error("Ошибка", str(e))
-        except Exception as e:
-            self.view.show_error("Ошибка", f"Не удалось добавить комментарий: {e}")
-
-    # Добавление инструкции обработки
-    def add_processing_instruction(self):
-        selected_item = self.view.tree.selection()
-        if not selected_item:
-            self.view.show_error("Ошибка", "Выберите узел для добавления инструкции обработки.")
-            return
-        path = self.get_path(selected_item[0])
-        pi = self.view.prompt_user("Введите инструкцию обработки (например, target data):")
-        if not pi:
-            return
-        try:
-            self.model.add_node(path, None, pi, node_type='processing_instruction')
-            self.view.populate_tree(self.model.data)
-            self.view.show_message("Успех", "Инструкция обработки успешно добавлена.")
-        except KeyError as e:
-            self.view.show_error("Ошибка", str(e))
-        except Exception as e:
-            self.view.show_error("Ошибка", f"Не удалось добавить инструкцию обработки: {e}")
 
     # Удаление узла
     def delete_node(self):
@@ -316,65 +205,6 @@ class Controller:
         except Exception as e:
             self.view.show_error("Ошибка добавления узла", str(e))
 
-    # Изменение узла
-    def edit_node(self):
-        selected_item = self.view.tree.selection()
-        if not selected_item:
-            self.view.show_error("Ошибка", "Выберите узел для изменения.")
-            return
-        item = selected_item[0]
-        key = self.view.tree.item(item, 'text')
-        value = self.view.tree.item(item, 'values')[0]
-        tags = self.view.tree.item(item, 'tags')
-
-        # Определение типа узла по тегам
-        if 'attribute' in tags:
-            node_type = 'attribute'
-        elif 'comment' in tags:
-            node_type = 'comment'
-            # Для комментариев ключ — индекс
-            key = self.view.tree.index(item, parent=self.view.tree.parent(item))
-        elif 'processing_instruction' in tags:
-            node_type = 'processing_instruction'
-            # Для инструкций обработки ключ — индекс
-            key = self.view.tree.index(item, parent=self.view.tree.parent(item))
-        elif 'text' in tags:
-            node_type = 'value'
-            key = '#text'
-        elif 'string' in tags or 'number' in tags or 'boolean' in tags or 'null' in tags:
-            node_type = 'value'
-            key = "Value"
-        else:
-            node_type = 'node'
-            if key.startswith('[') and key.endswith(']'):
-                node_type = 'list'
-                try:
-                    key = int(key.strip('[]'))
-                except ValueError:
-                    self.view.show_error("Ошибка", "Некорректный индекс элемента списка.")
-                    return
-
-        if node_type == 'value' and self.model.data_type == 'json':
-            # Для JSON типов значений предоставляем выбор типа
-            new_value = self.get_json_value()
-            if new_value is None:
-                return
-        else:
-            initial = value if node_type != 'value' else ''
-            new_value = self.view.prompt_user("Введите новое значение:", initialvalue=initial)
-            if new_value is None:
-                return
-
-        try:
-            self.model.update_node(self.get_path(item), key, new_value, node_type=node_type)
-            self.view.populate_tree(self.model.data)
-            self.view.show_message("Успех", "Узел успешно изменён.")
-        except KeyError as e:
-            self.view.show_error("Ошибка", str(e))
-        except TypeError as e:
-            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
-        except Exception as e:
-            self.view.show_error("Ошибка", f"Не удалось изменить узел: {e}")
 
     def edit_node_key(self):
         selected_item = self.view.tree.selection()
@@ -612,30 +442,6 @@ class Controller:
                 true_key = tags[1]
                 path.insert(0, true_key)
 
-            # # Обработка специальных узлов
-            # if text.startswith('@'):
-            #     key = text
-            #     path.insert(0, key)
-            # elif text == "#comment":
-            #     key = '#comment'
-            #     path.insert(0, key)
-            # elif text == "#processing_instruction":
-            #     key = '#processing_instruction'
-            #     path.insert(0, key)
-            # elif text == "#text":
-            #     key = '#text'
-            #     path.insert(0, key)
-            # elif text.startswith('[') and text.endswith(']'):
-            #     # Список
-            #     try:
-            #         index = int(text.strip('[]'))
-            #         path.insert(0, index)
-            #     except ValueError:
-            #         # Некорректный индекс
-            #         path.insert(0, text)
-            # else:
-            #     key = text
-            #     path.insert(0, key)
             item = parent
         return path
 
