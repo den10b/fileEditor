@@ -20,6 +20,9 @@
                 "null": {
                     "type": "null"
                 },
+                "list": {
+                    "type": "array"
+                },
                 "popup": {
                     "type": "object",
                     "properties": {
@@ -55,6 +58,7 @@
                 "string",
                 "num",
                 "bool",
+                "list",
                 "popup"
             ]
         }

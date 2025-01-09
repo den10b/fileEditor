@@ -1,0 +1,45 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="bookstore">
+    <xs:annotation>
+      <xs:documentation>comm2</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded" minOccurs="0">
+        <xs:element name="book">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element type="xs:string" name="title"/>
+              <xs:element name="author">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="pepa"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element type="xs:string" name="year" maxOccurs="unbounded" minOccurs="0"/>
+              <xs:element type="xs:string" name="price"/>
+            </xs:sequence>
+            <xs:attribute type="xs:string" name="category"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="version">
+          <xs:annotation>
+            <xs:documentation>comm</xs:documentation>
+          </xs:annotation>
+          <xs:complexType mixed="true">
+            <xs:sequence>
+              <xs:element type="xs:string" name="title" minOccurs="0"/>
+              <xs:element type="xs:string" name="author" minOccurs="0"/>
+              <xs:element type="xs:string" name="year" minOccurs="0"/>
+              <xs:element type="xs:string" name="price" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attribute type="xs:string" name="category" use="optional"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+      <xs:attribute type="xs:string" name="mmm"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

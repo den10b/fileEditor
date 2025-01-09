@@ -2,12 +2,10 @@
 <bookstore mmm="magi">
   <book category="fiction">
     <title>Empire Burlesque</title>
-    <zone>1</zone>
     <author pepa="pigg">Ola Nordmann</author>
     <year>eeeeehghghg</year>
     <year>2018</year>
     <price>10.90</price>
-    <empty/>
   </book>
   <version>1</version>
   <!--comm-->
