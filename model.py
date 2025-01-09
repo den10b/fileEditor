@@ -183,7 +183,7 @@ class DataModel:
             if self.data_type == "xml":
                 if isinstance(d, dict):
                     if "#text" in d:
-                        if node_type is not "attribute":
+                        if node_type  != "attribute":
                             raise TypeError(f"Нельзя добавить узел к элементу, у которого есть текст.")
             match node_type:
                 case "attribute":
