@@ -39,6 +39,9 @@ class View(tk.Tk):
         edit_menu = tk.Menu(menubar, tearoff=0)
         edit_menu.add_command(label="Добавить ...", command=self.on_add_node)
         edit_menu.add_separator()
+        edit_menu.add_command(label="Изменить ключ", command=self.on_edit_node_key)
+        edit_menu.add_command(label="Изменить значение", command=self.on_edit_node_value)
+        edit_menu.add_separator()
         edit_menu.add_command(label="Удалить", command=self.on_delete_node)
         menubar.add_cascade(label="Правка", menu=edit_menu)
 
@@ -55,6 +58,10 @@ class View(tk.Tk):
 
         add_node_btn = tk.Button(toolbar, text="Добавить ...", command=self.on_add_node)
         add_node_btn.pack(side=tk.LEFT, padx=2, pady=2)
+        edit_key_btn = tk.Button(toolbar, text="Изменить ключ", command=self.on_edit_node_key)
+        edit_key_btn.pack(side=tk.LEFT, padx=2, pady=2)
+        edit_val_btn = tk.Button(toolbar, text="Изменить значение", command=self.on_edit_node_value)
+        edit_val_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
         validate_btn = tk.Button(toolbar, text="Валидировать", command=lambda: self.on_validate("current"))
         validate_btn.pack(side=tk.LEFT, padx=2, pady=2)
@@ -279,8 +286,14 @@ class View(tk.Tk):
 
     # Методы для обновления интерфейса
     def populate_tree(self, data):
+        expansion_state = self.save_expansion_state()
+
         self.tree.delete(*self.tree.get_children())
+
         self._populate_tree_recursive("", data)
+
+        self.restore_expansion_state(expansion_state)
+
 
     def _populate_tree_recursive(self, parent, data):
         match self.current_file_type:
@@ -348,6 +361,38 @@ class View(tk.Tk):
                     self.get_json_type_tag(data)
                     self.tree.insert(parent, 'end', text="Value", values=(data,), tags=('value',))
         self.apply_tags_colors()
+
+    def save_expansion_state(self):
+        """Сохраняет состояние открытости всех узлов дерева по пути от корня."""
+        state = {}
+        for item in self.tree.get_children(''):
+            self._save_expansion_state_recursive(item, state, [])
+        return state
+
+    def _save_expansion_state_recursive(self, item, state, path):
+        # Добавляем текущий узел в путь
+        current_path = path + [self.tree.item(item, 'tags')[1]]
+        # Сохраняем состояние открытости узла
+        state[tuple(current_path)] = self.tree.item(item, 'open')
+        # Рекурсивно проходим по дочерним элементам
+        for child in self.tree.get_children(item):
+            self._save_expansion_state_recursive(child, state, current_path)
+
+    def restore_expansion_state(self, state):
+        """Восстанавливает состояние открытости всех узлов дерева по пути."""
+
+        def find_node_by_path(current_item, current_path):
+            for child in self.tree.get_children(current_item):
+                if self.tree.item(child, 'tags')[1] == current_path[0]:
+                    if len(current_path) == 1:
+                        return child
+                    return find_node_by_path(child, current_path[1:])
+            return None
+
+        for path, is_open in state.items():
+            node = find_node_by_path('', list(path))
+            if node:
+                self.tree.item(node, open=is_open)
 
     def format_json_value(self, value):
         if isinstance(value, str):
