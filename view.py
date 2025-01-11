@@ -51,6 +51,14 @@ class View(tk.Tk):
         validate_menu.add_command(label="Валидировать другой документ", command=lambda: self.on_validate("other"))
         menubar.add_cascade(label="Валидация", menu=validate_menu)
 
+        # # Меню "Проочее"
+        # other_menu = tk.Menu(menubar, tearoff=0)
+        # other_menu.add_command(label="О программе", command=lambda: self.on_validate("current"))
+        # other_menu.add_command(label="Валидировать другой документ", command=lambda: self.on_validate("other"))
+        # menubar.add_cascade(label="Прочее", menu=other_menu)
+        menubar.add_command(label="О программе", command=self.on_info)
+        menubar.add_command(label="Помощь", command=self.on_help)
+
         self.config(menu=menubar)
 
     def create_toolbar(self):
@@ -108,7 +116,7 @@ class View(tk.Tk):
                     self.type_dropdown = ttk.Combobox(details_frame, textvariable=self.type_var, state="readolnly")
                     self.type_dropdown.grid(row=idx, column=1, sticky=tk.W, padx=5, pady=5)
                 case _:
-                    entry = ttk.Entry(details_frame, width=50,state="readolnly")
+                    entry = ttk.Entry(details_frame, width=50, state="readolnly")
                     entry.grid(row=idx, column=1, sticky=tk.W, padx=5, pady=5)
                     self.details_entries[field] = entry
 
@@ -154,6 +162,43 @@ class View(tk.Tk):
 
     def on_edit_node_value(self):
         self.controller.edit_node_value()
+
+    def on_help(self):
+        help_text = (
+            f"Инструкция по использованию редактора:\n\n"
+            f"- Открытие файла: используйте меню 'Файл' > 'Открыть JSON/XML'.\n"
+            f"- Редактирование файла: после открытия файла используйте древовидный интерфейс для выбора узлов. "
+            f"Щелкните на узел, чтобы выбрать его, затем выберите желаемое действие на верхней панели "
+            f"или в контекстном меню (ПКМ).\n"
+            f"- Валидация: в меню 'Валидация' выберите тип проверки. Для 'Валидировать текущий документ' "
+            f"выберите схему, соответствующую документу. Для 'Валидировать другой документ' выберите сначала "
+            f"файл для валидации, затем файл со схемой. Кнопка 'Валидировать' запускает проверку текущего документа.\n"
+            f"- Сохранение: выберите 'Файл' > 'Сохранить' для сохранения изменений или 'Сохранить как...' "
+            f"для сохранения с новым именем.\n"
+            f"- О программе: нажмите на кнопку 'О программе', чтобы узнать информацию об авторе и версии.\n"
+            f"- Подсказки: нажмите на кнопку 'Помощь' для просмотра этой инструкции."
+            f"\n"
+            f"\n"
+            f"После добавления узла невозможно изменить его тип.\n"
+            f"Если внутри узла есть другие узлы, то нельзя изменить его значение кнопкой 'Изменить значение'.\n"
+            f"Невозможно добавить узел без открытого документа.\n"
+
+        )
+        messagebox.showinfo("Помощь", help_text)
+
+    def on_info(self):
+        info_text = (
+            f"Редактор XML и JSON\n"
+            f"Автор: Бабкин Денис Константинович\n"
+            f"\n"
+            f"Это приложение предназначено для удобной работы с файлами в форматах XML и JSON. "
+            f"Оно позволяет загружать, редактировать и сохранять данные, "
+            f"отображая их в древовидной структуре для наглядности. "
+            f"Приложение поддерживает добавление, удаление и изменение узлов, "
+            f"валидацию данных с использованием JSON Schema и XSD, "
+            f"а также подсветку различных типов элементов. "
+        )
+        messagebox.showinfo("О программе", info_text)
 
     def on_validate(self, target):
         self.controller.validate(target)
@@ -293,7 +338,6 @@ class View(tk.Tk):
         self._populate_tree_recursive("", data)
 
         self.restore_expansion_state(expansion_state)
-
 
     def _populate_tree_recursive(self, parent, data):
         match self.current_file_type:
