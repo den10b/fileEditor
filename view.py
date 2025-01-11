@@ -184,7 +184,7 @@ class View(tk.Tk):
         # Окно выбора типа
         dialog = tk.Toplevel(self)
         dialog.title("Выберите тип узла")
-        dialog.geometry("300x200")
+        dialog.geometry("300x300")
 
         # Доступные типы для JSON и XML
         if self.current_file_type == "json":
@@ -428,7 +428,7 @@ class View(tk.Tk):
                     case 'string':
                         return str(value)
                     case 'boolean':
-                        return bool(value)
+                        return value.lower() == 'true'
                     case 'null':
                         return None
                     case 'number':

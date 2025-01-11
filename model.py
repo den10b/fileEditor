@@ -180,7 +180,7 @@ class DataModel:
             if self.data_type == "xml":
                 if isinstance(d, dict):
                     if "#text" in d:
-                        if node_type  != "attribute":
+                        if node_type != "attribute":
                             raise TypeError(f"Нельзя добавить узел к элементу, у которого есть текст.")
             match node_type:
                 case "attribute":
@@ -324,7 +324,6 @@ class DataModel:
                 raise KeyError(f"Ключ '{key}' не найден.")
         except (KeyError, IndexError):
             raise KeyError(f"Путь {'->'.join(map(str, path))} не существует.")
-
 
     # Обновление узла
     def update_node_type(self, path, new_type='node'):
