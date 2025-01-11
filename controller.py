@@ -30,6 +30,7 @@ class Controller:
                     self.model.load_xml(file_path)
                     self.view.current_file_type = 'xml'
                 self.view.populate_tree(self.model.data)
+                self.view.buttons["validate_btn"].config(state="normal")
                 # self.view.show_message("Успех", f"Файл '{file_path}' успешно открыт.")
             except Exception as e:
                 self.view.show_error("Ошибка", f"Не удалось открыть файл: {e}")
@@ -69,14 +70,19 @@ class Controller:
         value = self.view.tree.item(item, 'values')[0]
         tags = self.view.tree.item(item, 'tags')
 
+        change_key = True
+        change_val = True
+
         if 'attribute' in tags:
             node_type = "Attribute"
         elif 'comment' in tags:
             node_type = "Comment"
+            change_key = False
         elif 'processing_instruction' in tags:
             node_type = "Processing Instruction"
         elif 'text' in tags:
             node_type = "Text"
+            change_key = False
         elif 'string' in tags:
             node_type = "String"
         elif 'number' in tags:
@@ -87,12 +93,24 @@ class Controller:
             node_type = "Null"
         elif 'dict' in tags:
             node_type = "Object"
+            change_val = False
         elif 'list' in tags:
             node_type = "Array"
-        else:
+            change_val = False
+        elif 'list' in tags:
+            node_type = "Array"
+            change_val = False
+        elif 'node' in tags:
             node_type = "Node"
+            path = self.get_path_from_tree_item(item)
+            change_val = not self.model.xml_have_child_nodes(path)
+        else:
+            node_type = "Unknown"
 
-        return {"key": key, "value": value, "type": node_type}
+        if 'list_el' in tags:
+            change_key = False
+
+        return {"key": key, "value": value, "type": node_type, "change_key": change_key, "change_val": change_val}
 
     # Сохранение файла
     def save_file(self, as_new=False):
@@ -204,7 +222,6 @@ class Controller:
             self.view.show_message("Успех", "Узел успешно добавлен.")
         except Exception as e:
             self.view.show_error("Ошибка добавления узла", str(e))
-
 
     def edit_node_key(self):
         selected_item = self.view.tree.selection()
@@ -447,6 +464,7 @@ class Controller:
 
     # Отображение деталей выбранного узла
     def display_details(self, item):
+
         self.view.display_details(item)
 
     # Обновление деталей узла

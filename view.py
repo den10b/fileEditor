@@ -13,6 +13,7 @@ class View(tk.Tk):
         self.title("XML и JSON Редактор")
         self.geometry("1200x700")
         self.current_file_type = None  # 'json' или 'xml'
+        self.buttons = None
         self.create_widgets()
 
     def create_widgets(self):
@@ -57,7 +58,6 @@ class View(tk.Tk):
         info_menu.add_command(label="Помощь", command=self.on_help)
         menubar.add_cascade(label="Справка", menu=info_menu)
 
-
         self.config(menu=menubar)
 
     def create_toolbar(self):
@@ -70,9 +70,13 @@ class View(tk.Tk):
         edit_val_btn = tk.Button(toolbar, text="Изменить значение", command=self.on_edit_node_value)
         edit_val_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
-        validate_btn = tk.Button(toolbar, text="Валидировать", command=lambda: self.on_validate("current"))
+        validate_btn = tk.Button(toolbar, text="Валидировать", command=lambda: self.on_validate("current"),state="disabled")
         validate_btn.pack(side=tk.LEFT, padx=2, pady=2)
-
+        self.buttons = {
+            "edit_key_btn": edit_key_btn,
+            "edit_val_btn": edit_val_btn,
+            "validate_btn": validate_btn,
+        }
         toolbar.pack(side=tk.TOP, fill=tk.X)
 
     def create_paned_window(self):
@@ -504,6 +508,16 @@ class View(tk.Tk):
 
         self.type_dropdown['values'] = self.controller.get_available_types()
         self.type_var.set(details["type"])
+
+        if details["change_key"]:
+            self.buttons["edit_key_btn"].config(state="normal")
+        else:
+            self.buttons["edit_key_btn"].config(state="disabled")
+
+        if details["change_val"]:
+            self.buttons["edit_val_btn"].config(state="normal")
+        else:
+            self.buttons["edit_val_btn"].config(state="disabled")
 
     def show_message(self, title, message):
         messagebox.showinfo(title, message)

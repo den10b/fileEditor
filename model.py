@@ -402,6 +402,21 @@ class DataModel:
         except etree.DocumentInvalid as e:
             return False, f"Ошибка валидации: {e.error_log}"
 
+    def xml_have_child_nodes(self, path):
+        d = self.data
+        try:
+            # Перемещаемся по пути до родителя узла
+            for p in path:
+                d = d[p]
+            if self.data_type == "xml":
+                if isinstance(d, dict):
+                    for child_key in d.keys():
+                        if not (child_key == "#text" or child_key.startswith("@")):
+                            return True
+            return False
+        except:
+            raise Exception("Ошибка!")
+
     def validate_new_xml(self, schema_path):
         xmlschema_doc = etree.parse(schema_path)
         xmlschema = etree.XMLSchema(xmlschema_doc)
