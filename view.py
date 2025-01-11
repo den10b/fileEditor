@@ -51,13 +51,12 @@ class View(tk.Tk):
         validate_menu.add_command(label="Валидировать другой документ", command=lambda: self.on_validate("other"))
         menubar.add_cascade(label="Валидация", menu=validate_menu)
 
-        # # Меню "Проочее"
-        # other_menu = tk.Menu(menubar, tearoff=0)
-        # other_menu.add_command(label="О программе", command=lambda: self.on_validate("current"))
-        # other_menu.add_command(label="Валидировать другой документ", command=lambda: self.on_validate("other"))
-        # menubar.add_cascade(label="Прочее", menu=other_menu)
-        menubar.add_command(label="О программе", command=self.on_info)
-        menubar.add_command(label="Помощь", command=self.on_help)
+        # Меню "Справка"
+        info_menu = tk.Menu(menubar, tearoff=0)
+        info_menu.add_command(label="О программе", command=self.on_info)
+        info_menu.add_command(label="Помощь", command=self.on_help)
+        menubar.add_cascade(label="Справка", menu=info_menu)
+
 
         self.config(menu=menubar)
 
