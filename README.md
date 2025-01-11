@@ -52,7 +52,7 @@
      - $${\color{black}Узел}$$
      - $${\color{firebrick}Атрибут}$$
      - $${\color{green}Комментарий}$$
-     - $${\color{grey}Текст  внутри  узла}$$
+     - $${\color{grey}Текст}$$
    - Для JSON
      - $${\color{olive}Список}$$
      - $${\color{teal}Словарь}$$
