@@ -52,14 +52,14 @@
      - $${\color{black}Узел}$$
      - $${\color{firebrick}Атрибут}$$
      - $${\color{green}Комментарий}$$
-     - $${\color{grey}Текст внутри узла}$$
+     - $${\color{grey}Текст_внутри_узла}$$
    - Для JSON
      - $${\color{olive}Список}$$
      - $${\color{teal}Словарь}$$
-     - $${\color{blue3}Строка}$$
-     - $${\color{chartreuse4}Число}$$
-     - $${\color{dodgerblue3}Булево}$$
-     - $${\color{darkseagreen4}null}$$
+     - $${\color{blue}Строка}$$
+     - $${\color{chartreuse}Число}$$
+     - $${\color{dodgerblue}Булево}$$
+     - $${\color{darkseagreen}null}$$
 
 
 ## Инструкция по использованию
