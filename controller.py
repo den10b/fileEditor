@@ -426,6 +426,13 @@ class Controller:
                     return
             except Exception as e:
                 self.view.show_error("Валидация", f"Файл не валиден: {e}")
+        elif target == "pass":
+            try:
+                self.model.validate_all_pass()
+                self.view.show_message("Валидация", "Пароли в файле соответствуют требованиям безопасности.")
+                return
+            except Exception as e:
+                self.view.show_error("Валидация", f"Файл не валиден:\n{e}")
 
     def edit_xml_declaration(self):
         version = self.view.prompt_user("Введите версию XML:",

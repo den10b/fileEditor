@@ -3,6 +3,7 @@ import json
 from jsonschema import validate, ValidationError
 from lxml import etree
 import copy
+import re
 
 
 class DataModel:
@@ -426,3 +427,42 @@ class DataModel:
             return True, "XML валиден."
         except etree.DocumentInvalid as e:
             return False, f"Ошибка валидации: {e.error_log}"
+
+    def validate_all_pass(self):
+        if isinstance(self.data, dict):
+            try:
+                self.validate_all_pass_recursive(self.data,"")
+                return
+            except Exception as e:
+                raise Exception(f"{e}")
+
+    def validate_all_pass_recursive(self, body, path):
+        if isinstance(body, dict):
+            for key, value in body.items():
+                if re.search('pass|key|пароль|ключ', key) is not None:
+                    if isinstance(value, str):
+                        try:
+                            validate_pass(value)
+                        except Exception as e:
+                            raise Exception(f"Ошибка проверки пароля по пути {path} > {key}:\n"
+                                            f"{e}")
+                if isinstance(value, dict) or isinstance(value, list):
+                    self.validate_all_pass_recursive(value, f"{path} > {key}")
+        elif isinstance(body, list):
+            for key, value in enumerate(body):
+                if isinstance(value, dict) or isinstance(value, list):
+                    self.validate_all_pass_recursive(value, f"{path} > {key}")
+
+def validate_pass(password):
+    if len(password) < 8:
+        raise Exception("Пароль короче 8 символов")
+    elif re.search('[0-9]', password) is None:
+        raise Exception("В пароле нет цифр")
+    elif re.search('[A-Z]|[А-Я]', password) is None:
+        raise Exception("В пароле нет заглавных букв")
+    elif re.search('[a-z]|[А-Я]', password) is None:
+        raise Exception("В пароле нет строчных букв")
+    elif re.search('[@$!%*#?&]', password) is None:
+        raise Exception("В пароле нет спецсимволов")
+    else:
+        return

@@ -50,6 +50,8 @@ class View(tk.Tk):
         validate_menu = tk.Menu(menubar, tearoff=0)
         validate_menu.add_command(label="Валидировать текущий документ", command=lambda: self.on_validate("current"))
         validate_menu.add_command(label="Валидировать другой документ", command=lambda: self.on_validate("other"))
+        validate_menu.add_command(label="Валидировать пароли", command=lambda: self.on_validate("pass"))
+
         menubar.add_cascade(label="Валидация", menu=validate_menu)
 
         # Меню "Справка"
